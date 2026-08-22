@@ -9,6 +9,10 @@ import RecurringControls from "@/components/kaira/RecurringControls";
 import SectionTitle from "@/components/kaira/SectionTitle";
 
 import {
+  getRecurringControls,
+} from "@/lib/data/recurring-controls";
+
+import {
   getAccount,
 } from "@/lib/data/accounts";
 
@@ -36,6 +40,9 @@ import {
   supabaseServer,
 } from "@/lib/supabase/server";
 
+export const dynamic =
+  "force-dynamic";
+
 export default async function GuardPage() {
   const accountId =
     process.env.DEMO_ACCOUNT_ID;
@@ -49,9 +56,19 @@ export default async function GuardPage() {
   const [
     account,
     transactions,
+    recurringControls,
   ] = await Promise.all([
-    getAccount(accountId),
-    getTransactions(accountId),
+    getAccount(
+      accountId,
+    ),
+
+    getTransactions(
+      accountId,
+    ),
+
+    getRecurringControls(
+      accountId,
+    ),
   ]);
 
   const recurringPayments =
@@ -62,7 +79,10 @@ export default async function GuardPage() {
   const upcomingCharges =
     forecastUpcomingCharges({
       recurringPayments,
-      fromDate: "2026-08-22",
+
+      fromDate:
+        "2026-08-22",
+
       days: 30,
     });
 
@@ -77,23 +97,77 @@ export default async function GuardPage() {
         account.safetyBuffer,
     });
 
+  /*
+   * Actual recurring-control
+   * state from Supabase.
+   */
+  const watchedCount =
+    recurringPayments.filter(
+      (payment) =>
+        (
+          recurringControls[
+            payment.merchant
+          ] ?? "watch"
+        ) === "watch",
+    ).length;
+
+  const autoPayCount =
+    recurringPayments.filter(
+      (payment) =>
+        recurringControls[
+          payment.merchant
+        ] === "auto-pay",
+    ).length;
+
+  const reviewCount =
+    recurringPayments.filter(
+      (payment) => {
+        const mode =
+          recurringControls[
+            payment.merchant
+          ];
+
+        return (
+          mode === "cancel" ||
+          mode === "ask-me"
+        );
+      },
+    ).length;
+
   const {
     data: guardEvents,
+    error: guardEventsError,
   } =
     await supabaseServer
-      .from("guard_events")
+      .from(
+        "guard_events",
+      )
       .select(`
         id,
         purchase_name,
         risk_level,
         recommendation,
-        status
+        status,
+        created_at
       `)
       .eq(
         "account_id",
         accountId,
       )
+      .order(
+        "created_at",
+        {
+          ascending: false,
+        },
+      )
       .limit(3);
+
+  if (guardEventsError) {
+    console.error(
+      "Unable to load guard events:",
+      guardEventsError.message,
+    );
+  }
 
   return (
     <KairaShell>
@@ -127,7 +201,11 @@ export default async function GuardPage() {
               </h2>
 
               <p className="text-xs text-muted-foreground">
-                {recurringPayments.length} charges under watch
+                {watchedCount} watching
+                {" · "}
+                {autoPayCount} protected
+                {" · "}
+                {reviewCount} need review
               </p>
             </div>
           </div>
@@ -135,7 +213,9 @@ export default async function GuardPage() {
           <div className="mt-4 grid grid-cols-3 gap-2">
 
             <Metric
-              Icon={ShieldCheck}
+              Icon={
+                ShieldCheck
+              }
               value={formatMoney(
                 financialStatus.safeToSpend,
               )}
@@ -146,16 +226,20 @@ export default async function GuardPage() {
             <Metric
               Icon={Eye}
               value={String(
-                recurringPayments.length,
+                watchedCount,
               )}
               label="Watching"
               color="text-lavender"
             />
 
             <Metric
-              Icon={ShieldAlert}
-              value="0"
-              label="At risk"
+              Icon={
+                ShieldAlert
+              }
+              value={String(
+                reviewCount,
+              )}
+              label="Review"
               color="text-warning"
             />
 
@@ -170,6 +254,9 @@ export default async function GuardPage() {
           recurringPayments={
             recurringPayments
           }
+          initialControls={
+            recurringControls
+          }
         />
 
         <SectionTitle>
@@ -178,11 +265,14 @@ export default async function GuardPage() {
 
         <div className="space-y-2.5">
           {guardEvents &&
-          guardEvents.length > 0 ? (
+          guardEvents.length >
+            0 ? (
             guardEvents.map(
               (event) => (
                 <div
-                  key={event.id}
+                  key={
+                    event.id
+                  }
                   className="rounded-2xl border border-border/70 bg-card p-4"
                 >
                   <div className="flex items-center gap-3">
@@ -192,6 +282,7 @@ export default async function GuardPage() {
                     </div>
 
                     <div className="min-w-0 flex-1">
+
                       <p className="text-sm font-bold">
                         Protected{" "}
                         {
@@ -203,6 +294,7 @@ export default async function GuardPage() {
                         {event.recommendation ??
                           `${event.risk_level} financial risk detected`}
                       </p>
+
                     </div>
 
                   </div>
@@ -227,9 +319,13 @@ function Metric({
   label,
   color,
 }: {
-  Icon: typeof ShieldCheck;
+  Icon:
+    typeof ShieldCheck;
+
   value: string;
+
   label: string;
+
   color: string;
 }) {
   return (

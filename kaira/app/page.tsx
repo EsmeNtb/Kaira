@@ -1,23 +1,9 @@
-import {
-  getAccount,
-} from "@/lib/data/accounts";
-
-import {
-  getTransactions,
-} from "@/lib/data/transactions";
-
-import {
-  detectRecurringPayments,
-} from "@/lib/engines/recurring-engine";
-
-import {
-  forecastUpcomingCharges,
-} from "@/lib/engines/forecast-engine";
-
-import {
-  calculateSafeToSpend,
-} from "@/lib/engines/safe-to-spend-engine";
-
+import {getAccount,} from "@/lib/data/accounts";
+import {getTransactions,} from "@/lib/data/transactions";
+import {detectRecurringPayments,} from "@/lib/engines/recurring-engine";
+import {forecastUpcomingCharges,} from "@/lib/engines/forecast-engine";
+import { calculateSafeToSpend,} from "@/lib/engines/safe-to-spend-engine";
+import { getRecurringControls,} from "@/lib/data/recurring-controls";
 import HeroSection from "@/components/kaira/HeroSection";
 import StatsChip from "@/components/kaira/StatsChip";
 import UpcomingCommitments from "@/components/kaira/UpcomingCommitments";
@@ -44,10 +30,17 @@ export default async function Home() {
   const [
     account,
     transactions,
+    recurringControls,
   ] = await Promise.all([
     getAccount(accountId),
 
-    getTransactions(accountId),
+    getTransactions(
+      accountId,
+    ),
+
+    getRecurringControls(
+      accountId,
+    ),
   ]);
 
   const recurringPayments =
@@ -132,6 +125,9 @@ export default async function Home() {
         <RecurringControls
           recurringPayments={
             recurringPayments
+          }
+          initialControls={
+            recurringControls
           }
         />
 
