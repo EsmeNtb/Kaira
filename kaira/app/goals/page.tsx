@@ -3,7 +3,7 @@ import KairaShell from "@/components/kaira/KairaShell";
 import SavingGoals from "@/components/kaira/SavingGoals";
 
 import {
-  getSavingsGoals,
+  getSavingsGoalSnapshot,
 } from "@/lib/data/savings-goals";
 
 export const dynamic =
@@ -20,8 +20,8 @@ export default async function GoalsPage() {
     );
   }
 
-  const goals =
-    await getSavingsGoals(
+  const snapshot =
+    await getSavingsGoalSnapshot(
       accountId,
     );
 
@@ -46,7 +46,13 @@ export default async function GoalsPage() {
 
         <SavingGoals
           goals={
-            goals
+            snapshot.goals
+          }
+          currentBalance={
+            snapshot.currentBalance
+          }
+          availableToSave={
+            snapshot.availableToSave
           }
           showHeader={
             false

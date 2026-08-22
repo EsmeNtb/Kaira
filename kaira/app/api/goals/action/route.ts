@@ -6,10 +6,15 @@ import {
   supabaseServer,
 } from "@/lib/supabase/server";
 
+import {
+  getSavingsGoalSnapshot,
+} from "@/lib/data/savings-goals";
+
 type GoalAction =
   | "add"
   | "release"
-  | "move";
+  | "move"
+  | "delete";
 
 export async function POST(
   request: Request,
@@ -45,24 +50,16 @@ export async function POST(
         body.action ?? "",
       ) as GoalAction;
 
-    const amount =
-      Number(
-        body.amount,
-      );
-
     if (
       !goalId ||
       ![
         "add",
         "release",
         "move",
+        "delete",
       ].includes(
         action,
-      ) ||
-      !Number.isFinite(
-        amount,
-      ) ||
-      amount <= 0
+      )
     ) {
       return NextResponse.json(
         {
@@ -87,6 +84,7 @@ export async function POST(
         )
         .select(`
           id,
+          name,
           target_amount,
           saved_amount
         `)
@@ -127,29 +125,120 @@ export async function POST(
       );
 
     /*
-     * ADD MONEY
+     * DELETE
      *
-     * Money already exists in account balance.
-     * We are simply reserving more of it.
+     * Nothing is added to account.balance.
+     *
+     * The money was always part of the balance.
+     * Removing the reservation makes it
+     * available again automatically.
+     */
+    if (
+      action ===
+      "delete"
+    ) {
+      const {
+        error,
+      } =
+        await supabaseServer
+          .from(
+            "savings_goals",
+          )
+          .delete()
+          .eq(
+            "id",
+            goalId,
+          )
+          .eq(
+            "account_id",
+            accountId,
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      return NextResponse.json({
+        success: true,
+        action:
+          "delete",
+
+        releasedAmount:
+          sourceSaved,
+      });
+    }
+
+    const amount =
+      Number(
+        body.amount,
+      );
+
+    if (
+      !Number.isFinite(
+        amount,
+      ) ||
+      amount <= 0
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Enter a valid amount.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    /*
+     * ADD
      */
     if (
       action ===
       "add"
     ) {
-      const nextSaved =
-        sourceSaved +
-        amount;
+      const snapshot =
+        await getSavingsGoalSnapshot(
+          accountId,
+        );
 
       if (
-        nextSaved >
-        sourceTarget
+        amount >
+        snapshot.availableToSave
       ) {
         return NextResponse.json(
           {
             success: false,
 
             message:
-              "That would exceed the goal target.",
+              `You only have ${snapshot.availableToSave.toLocaleString(
+                "en-US",
+                {
+                  style:
+                    "currency",
+                  currency:
+                    "MXN",
+                  maximumFractionDigits: 0,
+                },
+              )} available to save.`,
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      if (
+        sourceSaved +
+          amount >
+        sourceTarget
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "That amount would exceed the goal target.",
           },
           {
             status: 400,
@@ -166,10 +255,12 @@ export async function POST(
           )
           .update({
             saved_amount:
-              nextSaved,
+              sourceSaved +
+              amount,
 
             updated_at:
-              new Date().toISOString(),
+              new Date()
+                .toISOString(),
           })
           .eq(
             "id",
@@ -186,15 +277,13 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        action: "add",
+        action:
+          "add",
       });
     }
 
     /*
-     * RELEASE MONEY
-     *
-     * Reserved goal money becomes
-     * available to spend again.
+     * RELEASE
      */
     if (
       action ===
@@ -209,17 +298,22 @@ export async function POST(
             success: false,
 
             message:
-              "You cannot release more than you have saved.",
+              `You only have ${sourceSaved.toLocaleString(
+                "en-US",
+                {
+                  style:
+                    "currency",
+                  currency:
+                    "MXN",
+                  maximumFractionDigits: 0,
+                },
+              )} reserved in this goal.`,
           },
           {
             status: 400,
           },
         );
       }
-
-      const nextSaved =
-        sourceSaved -
-        amount;
 
       const {
         error,
@@ -230,10 +324,12 @@ export async function POST(
           )
           .update({
             saved_amount:
-              nextSaved,
+              sourceSaved -
+              amount,
 
             updated_at:
-              new Date().toISOString(),
+              new Date()
+                .toISOString(),
           })
           .eq(
             "id",
@@ -256,7 +352,7 @@ export async function POST(
     }
 
     /*
-     * MOVE MONEY
+     * MOVE
      */
     const toGoalId =
       String(
@@ -290,7 +386,16 @@ export async function POST(
           success: false,
 
           message:
-            "You cannot move more than you have saved.",
+            `You only have ${sourceSaved.toLocaleString(
+              "en-US",
+              {
+                style:
+                  "currency",
+                currency:
+                  "MXN",
+                maximumFractionDigits: 0,
+              },
+            )} available in this goal.`,
         },
         {
           status: 400,
@@ -358,9 +463,8 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-
           message:
-            "That transfer would exceed the destination target.",
+            "That amount would exceed the destination goal target.",
         },
         {
           status: 400,
@@ -368,9 +472,6 @@ export async function POST(
       );
     }
 
-    /*
-     * Update source.
-     */
     const {
       error:
         subtractError,
@@ -385,7 +486,8 @@ export async function POST(
             amount,
 
           updated_at:
-            new Date().toISOString(),
+            new Date()
+              .toISOString(),
         })
         .eq(
           "id",
@@ -402,9 +504,6 @@ export async function POST(
       throw subtractError;
     }
 
-    /*
-     * Update destination.
-     */
     const {
       error:
         addError,
@@ -419,7 +518,8 @@ export async function POST(
             amount,
 
           updated_at:
-            new Date().toISOString(),
+            new Date()
+              .toISOString(),
         })
         .eq(
           "id",
@@ -432,7 +532,7 @@ export async function POST(
 
     if (addError) {
       /*
-       * Best-effort rollback.
+       * Restore source if destination fails.
        */
       await supabaseServer
         .from(
@@ -456,18 +556,18 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      action: "move",
+      action:
+        "move",
     });
   } catch (error) {
     console.error(
-      "Savings goal action error:",
+      "Goal action error:",
       error,
     );
 
     return NextResponse.json(
       {
         success: false,
-
         message:
           "Unable to update savings goal.",
       },

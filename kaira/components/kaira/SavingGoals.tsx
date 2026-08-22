@@ -43,6 +43,8 @@ interface SavingsGoal {
 
 interface SavingGoalsProps {
   goals: SavingsGoal[];
+  currentBalance: number;
+  availableToSave: number;
   showHeader?: boolean;
   variant?: "home" | "page";
 }
@@ -52,21 +54,18 @@ type GoalAction =
   | "move"
   | "release";
 
-const iconMap:
-  Record<
-    string,
-    LucideIcon
-  > = {
+const iconMap: Record<
+  string,
+  LucideIcon
+> = {
   shield: Shield,
   plane: Plane,
   laptop: Laptop,
-  education:
-    GraduationCap,
+  education: GraduationCap,
   house: House,
   car: Car,
   gift: Gift,
-  "piggy-bank":
-    PiggyBank,
+  "piggy-bank": PiggyBank,
   target: Target,
 };
 
@@ -85,8 +84,7 @@ const iconOptions = [
   },
   {
     key: "education",
-    Icon:
-      GraduationCap,
+    Icon: GraduationCap,
   },
   {
     key: "house",
@@ -101,8 +99,7 @@ const iconOptions = [
     Icon: Gift,
   },
   {
-    key:
-      "piggy-bank",
+    key: "piggy-bank",
     Icon: PiggyBank,
   },
   {
@@ -115,35 +112,29 @@ const tones = [
   {
     bar: "bg-mint",
     text: "text-mint",
-    border:
-      "border-mint/30",
+    border: "border-mint/30",
   },
   {
-    bar:
-      "bg-lavender",
-    text:
-      "text-lavender",
-    border:
-      "border-lavender/30",
+    bar: "bg-lavender",
+    text: "text-lavender",
+    border: "border-lavender/30",
   },
   {
     bar: "bg-peach",
     text: "text-peach",
-    border:
-      "border-peach/30",
+    border: "border-peach/30",
   },
   {
-    bar:
-      "bg-warning",
-    text:
-      "text-warning",
-    border:
-      "border-warning/30",
+    bar: "bg-warning",
+    text: "text-warning",
+    border: "border-warning/30",
   },
 ];
 
 export default function SavingGoals({
   goals,
+  currentBalance,
+  availableToSave,
   showHeader = true,
   variant = "home",
 }: SavingGoalsProps) {
@@ -286,10 +277,13 @@ export default function SavingGoals({
     setCreateOpen(
       false,
     );
+
     setSelectedGoal(
       null,
     );
+
     setAction(null);
+
     setErrorMessage(
       null,
     );
@@ -347,6 +341,26 @@ export default function SavingGoals({
       ) {
         throw new Error(
           "Enter a valid saved amount.",
+        );
+      }
+
+      if (
+        saved >
+        target
+      ) {
+        throw new Error(
+          "Saved amount cannot be greater than the goal target.",
+        );
+      }
+
+      if (
+        saved >
+        availableToSave
+      ) {
+        throw new Error(
+          `You only have ${formatMoney(
+            availableToSave,
+          )} available to reserve.`,
         );
       }
 
@@ -448,14 +462,120 @@ export default function SavingGoals({
         );
       }
 
+      /*
+       * ADD
+       */
       if (
         action ===
-          "move" &&
-        !destinationId
+        "add"
       ) {
-        throw new Error(
-          "Choose a destination goal.",
-        );
+        if (
+          amount >
+          availableToSave
+        ) {
+          throw new Error(
+            `You only have ${formatMoney(
+              availableToSave,
+            )} available to reserve.`,
+          );
+        }
+
+        const remainingInGoal =
+          Math.max(
+            0,
+            selectedGoal.targetAmount -
+              selectedGoal.savedAmount,
+          );
+
+        if (
+          amount >
+          remainingInGoal
+        ) {
+          throw new Error(
+            `This goal only needs ${formatMoney(
+              remainingInGoal,
+            )} more.`,
+          );
+        }
+      }
+
+      /*
+       * RELEASE
+       */
+      if (
+        action ===
+        "release"
+      ) {
+        if (
+          amount >
+          selectedGoal.savedAmount
+        ) {
+          throw new Error(
+            `You only have ${formatMoney(
+              selectedGoal.savedAmount,
+            )} reserved in this goal.`,
+          );
+        }
+      }
+
+      /*
+       * MOVE
+       */
+      if (
+        action ===
+        "move"
+      ) {
+        if (
+          !destinationId
+        ) {
+          throw new Error(
+            "Choose a destination goal.",
+          );
+        }
+
+        if (
+          amount >
+          selectedGoal.savedAmount
+        ) {
+          throw new Error(
+            `You only have ${formatMoney(
+              selectedGoal.savedAmount,
+            )} available in this goal.`,
+          );
+        }
+
+        const destination =
+          goals.find(
+            (goal) =>
+              goal.id ===
+              destinationId,
+          );
+
+        if (
+          !destination
+        ) {
+          throw new Error(
+            "Destination goal not found.",
+          );
+        }
+
+        const destinationRoom =
+          Math.max(
+            0,
+            destination.targetAmount -
+              destination.savedAmount,
+          );
+
+        if (
+          amount >
+          destinationRoom
+        ) {
+          throw new Error(
+            `${destination.name} only needs ${formatMoney(
+              destinationRoom,
+            )} more.`,
+          );
+        }
       }
 
       const response =
@@ -504,7 +624,13 @@ export default function SavingGoals({
         null,
       );
 
-      setAction(null);
+      setAction(
+        null,
+      );
+
+      setActionAmount(
+        "",
+      );
 
       router.refresh();
     } catch (error) {
@@ -525,6 +651,7 @@ export default function SavingGoals({
     <>
       <section className="space-y-4">
 
+        {/* HOME HEADER */}
         {showHeader && (
           <div className="flex items-end justify-between">
 
@@ -553,6 +680,7 @@ export default function SavingGoals({
           </div>
         )}
 
+        {/* PAGE NEW GOAL */}
         {variant ===
           "page" &&
           !showHeader && (
@@ -573,6 +701,51 @@ export default function SavingGoals({
           </div>
         )}
 
+        {/* MONEY SUMMARY */}
+        {variant ===
+          "page" && (
+          <div className="grid grid-cols-2 gap-3">
+
+            <div className="rounded-2xl border border-border/70 bg-card p-4">
+
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+                Current money
+              </p>
+
+              <p className="mt-1 text-xl font-bold">
+                {formatMoney(
+                  currentBalance,
+                )}
+              </p>
+
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Current account balance
+              </p>
+
+            </div>
+
+            <div className="rounded-2xl border border-mint/25 bg-mint/10 p-4">
+
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-mint">
+                Available to reserve
+              </p>
+
+              <p className="mt-1 text-xl font-bold text-mint">
+                {formatMoney(
+                  availableToSave,
+                )}
+              </p>
+
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Not assigned to goals
+              </p>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* TOTAL SAVED */}
         {variant ===
           "page" && (
           <div className="rounded-[1.75rem] border border-peach/25 bg-card p-5">
@@ -617,6 +790,7 @@ export default function SavingGoals({
           </div>
         )}
 
+        {/* EMPTY */}
         {goals.length ===
           0 && (
           <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center">
@@ -634,6 +808,7 @@ export default function SavingGoals({
           </div>
         )}
 
+        {/* GOALS */}
         <div
           className={
             variant ===
@@ -867,6 +1042,21 @@ export default function SavingGoals({
 
             </div>
 
+            {/* AVAILABLE */}
+            <div className="mt-4 rounded-xl border border-mint/20 bg-mint/10 p-3">
+
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-mint">
+                Available to reserve
+              </p>
+
+              <p className="mt-1 text-lg font-bold">
+                {formatMoney(
+                  availableToSave,
+                )}
+              </p>
+
+            </div>
+
             <form
               onSubmit={
                 createGoal
@@ -898,6 +1088,7 @@ export default function SavingGoals({
 
               </label>
 
+              {/* ICON PICKER */}
               <div>
 
                 <p className="text-[11px] text-muted-foreground">
@@ -955,6 +1146,9 @@ export default function SavingGoals({
                 onChange={
                   setSavedAmount
                 }
+                max={
+                  availableToSave
+                }
               />
 
               {errorMessage && (
@@ -976,11 +1170,13 @@ export default function SavingGoals({
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
+
                     Creating...
                   </>
                 ) : (
                   <>
                     <Plus className="h-4 w-4" />
+
                     Create goal
                   </>
                 )}
@@ -1035,6 +1231,7 @@ export default function SavingGoals({
 
             </div>
 
+            {/* ACTIONS */}
             <div className="mt-5 grid grid-cols-3 gap-2">
 
               <ActionButton
@@ -1046,13 +1243,16 @@ export default function SavingGoals({
                   setAction(
                     "add",
                   );
+
+                  setActionAmount(
+                    "",
+                  );
+
                   setErrorMessage(
                     null,
                   );
                 }}
-                Icon={
-                  Plus
-                }
+                Icon={Plus}
                 label="Add"
               />
 
@@ -1065,6 +1265,15 @@ export default function SavingGoals({
                   setAction(
                     "move",
                   );
+
+                  setActionAmount(
+                    "",
+                  );
+
+                  setDestinationId(
+                    "",
+                  );
+
                   setErrorMessage(
                     null,
                   );
@@ -1084,6 +1293,11 @@ export default function SavingGoals({
                   setAction(
                     "release",
                   );
+
+                  setActionAmount(
+                    "",
+                  );
+
                   setErrorMessage(
                     null,
                   );
@@ -1119,6 +1333,44 @@ export default function SavingGoals({
                 className="mt-5 space-y-4"
               >
 
+                {/* ADD INFO */}
+                {action ===
+                  "add" && (
+                  <div className="rounded-xl border border-mint/20 bg-mint/10 p-3">
+
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-mint">
+                      Available to reserve
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold">
+                      {formatMoney(
+                        availableToSave,
+                      )}
+                    </p>
+
+                  </div>
+                )}
+
+                {/* MOVE / RELEASE INFO */}
+                {(action ===
+                  "move" ||
+                  action ===
+                    "release") && (
+                  <div className="rounded-xl border border-lavender/20 bg-lavender/10 p-3">
+
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-lavender">
+                      Available in this goal
+                    </p>
+
+                    <p className="mt-1 text-lg font-bold">
+                      {formatMoney(
+                        selectedGoal.savedAmount,
+                      )}
+                    </p>
+
+                  </div>
+                )}
+
                 <MoneyInput
                   label={
                     action ===
@@ -1135,8 +1387,22 @@ export default function SavingGoals({
                   onChange={
                     setActionAmount
                   }
+                  max={
+                    action ===
+                    "add"
+                      ? Math.min(
+                          availableToSave,
+                          Math.max(
+                            0,
+                            selectedGoal.targetAmount -
+                              selectedGoal.savedAmount,
+                          ),
+                        )
+                      : selectedGoal.savedAmount
+                  }
                 />
 
+                {/* MOVE DESTINATION */}
                 {action ===
                   "move" && (
                   <label className="block space-y-1.5">
@@ -1153,8 +1419,7 @@ export default function SavingGoals({
                         event,
                       ) =>
                         setDestinationId(
-                          event
-                            .target
+                          event.target
                             .value,
                         )
                       }
@@ -1197,14 +1462,13 @@ export default function SavingGoals({
                   </label>
                 )}
 
+                {/* RELEASE WARNING */}
                 {action ===
                   "release" && (
                   <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
 
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      Released money becomes
-                      available for spending
-                      again.
+                      Released money will no longer be protected by this goal and becomes available for spending.
                     </p>
 
                   </div>
@@ -1258,12 +1522,16 @@ function MoneyInput({
   label,
   value,
   onChange,
+  max,
 }: {
   label: string;
   value: string;
+
   onChange: (
     value: string,
   ) => void;
+
+  max?: number;
 }) {
   return (
     <label className="block space-y-1.5">
@@ -1281,6 +1549,9 @@ function MoneyInput({
         <input
           type="number"
           min="0"
+          max={
+            max
+          }
           value={
             value
           }
@@ -1296,6 +1567,16 @@ function MoneyInput({
         />
 
       </div>
+
+      {typeof max ===
+        "number" && (
+        <p className="text-[9px] text-muted-foreground">
+          Max{" "}
+          {formatMoney(
+            max,
+          )}
+        </p>
+      )}
 
     </label>
   );

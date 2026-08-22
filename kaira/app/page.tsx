@@ -195,6 +195,15 @@ export default async function Home() {
           goals={
             savingsGoals
           }
+          currentBalance={
+            account.balance
+          }
+          availableToSave={
+            Math.max(
+              0,
+              financialStatus.safeToSpend,
+            )
+          }
           variant="home"
         />
 

@@ -6,6 +6,10 @@ import {
   supabaseServer,
 } from "@/lib/supabase/server";
 
+import {
+  getSavingsGoalSnapshot,
+} from "@/lib/data/savings-goals";
+
 const allowedIcons =
   new Set([
     "shield",
@@ -31,7 +35,6 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-
           message:
             "DEMO_ACCOUNT_ID is missing.",
         },
@@ -86,7 +89,6 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-
           message:
             "Invalid goal.",
         },
@@ -103,9 +105,48 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
+          message:
+            "Saved amount cannot exceed the target.",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    /*
+     * Important:
+     * Available to save already considers:
+     *
+     * balance
+     * - existing goals
+     * - upcoming commitments
+     * - safety buffer
+     */
+    const snapshot =
+      await getSavingsGoalSnapshot(
+        accountId,
+      );
+
+    if (
+      savedAmount >
+      snapshot.availableToSave
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
 
           message:
-            "Saved amount cannot be greater than the goal target.",
+            `You only have ${snapshot.availableToSave.toLocaleString(
+              "en-US",
+              {
+                style:
+                  "currency",
+                currency:
+                  "MXN",
+                maximumFractionDigits: 0,
+              },
+            )} available to save.`,
         },
         {
           status: 400,
@@ -174,16 +215,15 @@ export async function POST(
     });
   } catch (error) {
     console.error(
-      "Create savings goal error:",
+      "Create goal error:",
       error,
     );
 
     return NextResponse.json(
       {
         success: false,
-
         message:
-          "Unable to create savings goal.",
+          "Unable to create goal.",
       },
       {
         status: 500,
