@@ -1,147 +1,160 @@
-import { mockTransactions } from "@/lib/data/mock-transactions";
+import {
+  getAccount,
+} from "@/lib/data/accounts";
 
-import { detectRecurringPayments } from "@/lib/engines/recurring-engine";
+import {
+  getTransactions,
+} from "@/lib/data/transactions";
 
-import { forecastUpcomingCharges } from "@/lib/engines/forecast-engine";
+import {
+  detectRecurringPayments,
+} from "@/lib/engines/recurring-engine";
 
-import { calculateSafeToSpend } from "@/lib/engines/safe-to-spend-engine";
+import {
+  forecastUpcomingCharges,
+} from "@/lib/engines/forecast-engine";
 
-import { PurchaseSimulator } from "@/components/purchase-simulator";
+import {
+  calculateSafeToSpend,
+} from "@/lib/engines/safe-to-spend-engine";
 
-export default function Home() {
+import HeroSection from "@/components/kaira/HeroSection";
+import StatsChip from "@/components/kaira/StatsChip";
+import UpcomingCommitments from "@/components/kaira/UpcomingCommitments";
+import SectionTitle from "@/components/kaira/SectionTitle";
+import RecurringControls from "@/components/kaira/RecurringControls";
+import KairaShell from "@/components/kaira/KairaShell";
+import SavingGoals from "@/components/kaira/SavingGoals";
+import DemoWallets from "@/components/kaira/DemoWallets";
+
+import {
+  PurchaseSimulator,
+} from "@/components/purchase-simulator";
+
+export default async function Home() {
+  const accountId =
+    process.env.DEMO_ACCOUNT_ID;
+
+  if (!accountId) {
+    throw new Error(
+      "DEMO_ACCOUNT_ID is missing.",
+    );
+  }
+
+  const [
+    account,
+    transactions,
+  ] = await Promise.all([
+    getAccount(accountId),
+
+    getTransactions(accountId),
+  ]);
+
   const recurringPayments =
-    detectRecurringPayments(mockTransactions);
+    detectRecurringPayments(
+      transactions,
+    );
 
   const upcomingCharges =
     forecastUpcomingCharges({
       recurringPayments,
-      fromDate: "2026-08-21",
+
+      fromDate: "2026-08-22",
+
       days: 30,
     });
 
   const financialStatus =
     calculateSafeToSpend({
-      currentBalance: 8400,
+      currentBalance:
+        account.balance,
+
       upcomingCharges,
-      safetyBuffer: 1000,
+
+      safetyBuffer:
+        account.safetyBuffer,
     });
 
   return (
-    <main className="min-h-screen bg-zinc-950 p-8 text-white">
-      <div className="mx-auto max-w-4xl space-y-8">
+    <KairaShell>
+      <div className="space-y-7">
 
-        <header>
-          <p className="text-sm uppercase tracking-[0.25em] text-zinc-500">
-            Kaira
-          </p>
+        <HeroSection
+          name={account.ownerName}
+          currentBalance={
+            account.balance
+          }
+          safeToSpend={
+            financialStatus.safeToSpend
+          }
+          upcomingCommitments={
+            financialStatus.upcomingExpenses
+          }
+          safetyReserve={
+            account.safetyBuffer
+          }
+        />
 
-          <h1 className="mt-3 text-4xl font-semibold">
-            Know what your money can handle.
-          </h1>
+        <StatsChip
+          transactionsAnalyzed={
+            transactions.length
+          }
+          commitmentsDetected={
+            recurringPayments.length
+          }
+        />
 
-          <p className="mt-3 max-w-xl text-zinc-400">
-            Kaira looks ahead at your upcoming commitments
-            so you know what you can safely spend today.
-          </p>
-        </header>
+        <UpcomingCommitments
+          upcomingCharges={
+            upcomingCharges
+          }
+          transactions={
+            transactions
+          }
+        />
 
-        <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-          <p className="text-zinc-400">
-            Safe to spend
-          </p>
-
-          <p className="mt-2 text-6xl font-semibold">
-            ${financialStatus.safeToSpend.toLocaleString()}
-          </p>
-
-          <p className="mt-3 text-sm text-zinc-500">
-            Available without compromising your next 30 days.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-8 text-sm text-zinc-400">
-            <div>
-              <p>Current balance</p>
-
-              <p className="mt-1 text-white">
-                ${financialStatus.currentBalance.toLocaleString()}
-              </p>
-            </div>
-
-            <div>
-              <p>Upcoming commitments</p>
-
-              <p className="mt-1 text-white">
-                ${financialStatus.upcomingExpenses.toLocaleString()}
-              </p>
-            </div>
-
-            <div>
-              <p>Safety reserve</p>
-
-              <p className="mt-1 text-white">
-                ${financialStatus.safetyBuffer.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-sm text-zinc-500">
-                NEXT 30 DAYS
-              </p>
-
-              <h2 className="mt-1 text-xl font-medium">
-                Upcoming commitments
-              </h2>
-            </div>
-
-            <p className="text-sm text-zinc-500">
-              Predicted by Kaira
-            </p>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {upcomingCharges.map((charge) => (
-              <div
-                key={`${charge.merchant}-${charge.expectedDate}`}
-                className="flex justify-between rounded-2xl border border-zinc-800 p-5"
-              >
-                <div>
-                  <p className="font-medium">
-                    {charge.merchant}
-                  </p>
-
-                  <p className="text-sm text-zinc-500">
-                    Expected {charge.expectedDate}
-                  </p>
-                </div>
-
-                <div className="text-right">
-                  <p>
-                    ${charge.amount.toLocaleString()}
-                  </p>
-
-                  <p className="text-sm text-zinc-500">
-                    {Math.round(
-                      charge.confidence * 100,
-                    )}
-                    % confidence
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
+        <SectionTitle>
+          Kaira&apos;s overview
+        </SectionTitle>
 
         <PurchaseSimulator
-          currentBalance={8400}
-          upcomingCharges={upcomingCharges}
-          safetyBuffer={1000}
+          currentBalance={
+            account.balance
+          }
+          upcomingCharges={
+            upcomingCharges
+          }
+          safetyBuffer={
+            account.safetyBuffer
+          }
+        />
+
+        <RecurringControls
+          recurringPayments={
+            recurringPayments
+          }
+        />
+
+        <SavingGoals variant="home" />
+        <DemoWallets
+          wallets={[
+            {
+              name:
+                account.name ??
+                "Main account",
+
+              type: "Checking",
+
+              balance:
+                account.balance,
+
+              tint:
+                "#3b82f6",
+            },
+          ]}
         />
 
       </div>
-    </main>
+    </KairaShell>
   );
 }

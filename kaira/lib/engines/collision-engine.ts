@@ -6,12 +6,22 @@ import type {
 
 interface SimulatePurchaseOptions {
   currentBalance: number;
-
   purchaseAmount: number;
-
   upcomingCharges: UpcomingCharge[];
-
   safetyBuffer?: number;
+}
+
+function formatMoney(
+  value: number,
+): string {
+  return new Intl.NumberFormat(
+    "en-US",
+    {
+      style: "currency",
+      currency: "MXN",
+      maximumFractionDigits: 0,
+    },
+  ).format(value);
 }
 
 export function simulatePurchase({
@@ -20,6 +30,7 @@ export function simulatePurchase({
   upcomingCharges,
   safetyBuffer = 1000,
 }: SimulatePurchaseOptions): PurchaseSimulation {
+  
   const upcomingExpenses =
     upcomingCharges.reduce(
       (total, charge) =>
@@ -62,28 +73,27 @@ export function simulatePurchase({
     message =
       `This purchase looks safe. ` +
       `After covering your upcoming commitments, ` +
-      `you would still have $${Math.round(
+      `you would still have ${formatMoney(
         safeToSpendAfter,
-      ).toLocaleString()} available.`;
+      )} available.`;
   }
 
   if (riskLevel === "warning") {
     message =
       `You can afford this purchase, but it would significantly ` +
       `reduce your financial margin. ` +
-      `You would have approximately $${Math.round(
+      `You would have approximately ${formatMoney(
         safeToSpendAfter,
-      ).toLocaleString()} available.`;
+      )} available.`;
   }
 
   if (riskLevel === "danger") {
     message =
       `This purchase would collide with your upcoming commitments. ` +
-      `You would be approximately $${Math.round(
+      `You would be approximately ${formatMoney(
         deficit,
-      ).toLocaleString()} below your safe financial margin.`;
+      )} below your safe financial margin.`;
   }
-
   return {
     purchaseAmount,
 

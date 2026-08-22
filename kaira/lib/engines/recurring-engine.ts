@@ -1,3 +1,5 @@
+import { resolveMerchant } from "@/lib/engines/merchant-resolver";
+
 import {
   addDays,
   differenceInCalendarDays,
@@ -10,171 +12,323 @@ import type {
   Transaction,
 } from "@/lib/types/finance";
 
-function normalizeMerchant(merchant: string): string {
-  const normalized = merchant
-    .toUpperCase()
-    .replace(".COM", "")
-    .replace(" MEXICO", "")
-    .replace(" MX", "")
-    .replace(/[^A-Z0-9 ]/g, "")
-    .trim();
-
-  return normalized;
+interface FrequencyCandidate {
+  frequency: RecurringFrequency;
+  expectedDays: number;
+  toleranceDays: number;
 }
 
-function average(numbers: number[]): number {
+const frequencyCandidates: FrequencyCandidate[] = [
+  {
+    frequency: "weekly",
+    expectedDays: 7,
+    toleranceDays: 2,
+  },
+  {
+    frequency: "biweekly",
+    expectedDays: 14,
+    toleranceDays: 3,
+  },
+  {
+    frequency: "monthly",
+    expectedDays: 30,
+    toleranceDays: 5,
+  },
+  {
+    frequency: "yearly",
+    expectedDays: 365,
+    toleranceDays: 30,
+  },
+];
+
+function average(
+  numbers: number[],
+): number {
+
   if (numbers.length === 0) {
     return 0;
   }
 
-  return numbers.reduce((sum, number) => sum + number, 0) /
-    numbers.length;
+  return (
+    numbers.reduce(
+      (total, number) => total + number,
+      0,
+    ) / numbers.length
+  );
 }
 
-function calculateConsistency(values: number[]): number {
-  if (values.length <= 1) {
+function calculateAmountConsistency(
+  amounts: number[],
+): number {
+  
+  if (amounts.length <= 1) {
     return 1;
   }
 
-  const avg = average(values);
+  const avg = average(amounts);
 
   if (avg === 0) {
     return 0;
   }
 
   const averageDeviation = average(
-    values.map((value) => Math.abs(value - avg)),
+    amounts.map((amount) =>
+      Math.abs(amount - avg),
+    ),
   );
 
-  return Math.max(0, 1 - averageDeviation / avg);
+  const variation =
+    averageDeviation / avg;
+
+  return Math.max(
+    0,
+    Math.min(1, 1 - variation),
+  );
 }
 
-function detectFrequency(
-  intervalDays: number,
-): RecurringFrequency | null {
-  if (intervalDays >= 5 && intervalDays <= 9) {
-    return "weekly";
+function calculateFrequencyScore(
+  intervals: number[],
+  candidate: FrequencyCandidate,
+): number {
+  if (intervals.length === 0) {
+    return 0;
   }
 
-  if (intervalDays >= 12 && intervalDays <= 16) {
-    return "biweekly";
+  const scores = intervals.map(
+    (interval) => {
+      const deviation = Math.abs(
+        interval - candidate.expectedDays,
+      );
+
+      if (
+        deviation >
+        candidate.toleranceDays * 2
+      ) {
+        return 0;
+      }
+
+      return Math.max(
+        0,
+        1 -
+          deviation /
+            (candidate.toleranceDays * 2),
+      );
+    },
+  );
+
+  return average(scores);
+}
+
+function findBestFrequency(
+  intervals: number[],
+): {
+  frequency: RecurringFrequency;
+  score: number;
+  expectedDays: number;
+} | null {
+  let best:
+    | {
+        frequency: RecurringFrequency;
+        score: number;
+        expectedDays: number;
+      }
+    | null = null;
+
+  for (const candidate of frequencyCandidates) {
+    const score =
+      calculateFrequencyScore(
+        intervals,
+        candidate,
+      );
+
+    if (!best || score > best.score) {
+      best = {
+        frequency:
+          candidate.frequency,
+        score,
+        expectedDays:
+          candidate.expectedDays,
+      };
+    }
   }
 
-  if (intervalDays >= 25 && intervalDays <= 35) {
-    return "monthly";
+  if (!best || best.score < 0.65) {
+    return null;
   }
 
-  if (intervalDays >= 330 && intervalDays <= 400) {
-    return "yearly";
-  }
-
-  return null;
+  return best;
 }
 
 export function detectRecurringPayments(
   transactions: Transaction[],
 ): RecurringPayment[] {
-  const expenses = transactions.filter(
-    (transaction) => transaction.type === "expense",
-  );
+  const expenses =
+    transactions.filter(
+      (transaction) =>
+        transaction.type === "expense",
+    );
 
-  const grouped = new Map<string, Transaction[]>();
+  const grouped =
+    new Map<string, Transaction[]>();
 
   for (const transaction of expenses) {
-    const merchant = normalizeMerchant(transaction.merchant);
+    const merchant =
+      resolveMerchant(
+        transaction.merchant,
+      );
 
-    const existingTransactions = grouped.get(merchant) ?? [];
+    const existing =
+      grouped.get(merchant) ?? [];
 
-    existingTransactions.push(transaction);
+    existing.push(transaction);
 
-    grouped.set(merchant, existingTransactions);
+    grouped.set(
+      merchant,
+      existing,
+    );
   }
 
-  const detected: RecurringPayment[] = [];
+  const recurringPayments:
+    RecurringPayment[] = [];
 
-  for (const [merchant, merchantTransactions] of grouped) {
-    if (merchantTransactions.length < 3) {
+  for (
+    const [
+      merchant,
+      merchantTransactions,
+    ] of grouped
+  ) {
+    if (
+      merchantTransactions.length < 3
+    ) {
       continue;
     }
 
-    const sorted = [...merchantTransactions].sort(
-      (a, b) =>
-        new Date(a.date).getTime() -
-        new Date(b.date).getTime(),
-    );
+    const sorted =
+      [...merchantTransactions].sort(
+        (a, b) =>
+          new Date(a.date).getTime() -
+          new Date(b.date).getTime(),
+      );
 
     const intervals: number[] = [];
 
-    for (let index = 1; index < sorted.length; index++) {
-      intervals.push(
+    for (
+      let index = 1;
+      index < sorted.length;
+      index++
+    ) {
+      const interval =
         differenceInCalendarDays(
-          new Date(sorted[index].date),
-          new Date(sorted[index - 1].date),
-        ),
-      );
+          new Date(
+            sorted[index].date,
+          ),
+          new Date(
+            sorted[index - 1].date,
+          ),
+        );
+
+      intervals.push(interval);
     }
 
-    const averageIntervalDays = average(intervals);
+    const bestFrequency =
+      findBestFrequency(intervals);
 
-    const frequency = detectFrequency(averageIntervalDays);
-
-    if (!frequency) {
+    if (!bestFrequency) {
       continue;
     }
 
-    const amounts = sorted.map(
-      (transaction) => transaction.amount,
-    );
-
-    const averageAmount = average(amounts);
-
-    const intervalConsistency =
-      calculateConsistency(intervals);
+    const amounts =
+      sorted.map(
+        (transaction) =>
+          transaction.amount,
+      );
 
     const amountConsistency =
-      calculateConsistency(amounts);
+      calculateAmountConsistency(
+        amounts,
+      );
 
-    const occurrenceScore = Math.min(
-      sorted.length / 4,
-      1,
-    );
+    const occurrenceScore =
+      Math.min(
+        sorted.length / 5,
+        1,
+      );
+
+    const patternStrength =
+      intervals.filter(
+        (interval) => interval > 0,
+      ).length /
+      intervals.length;
 
     const confidence =
-      intervalConsistency * 0.45 +
-      amountConsistency * 0.35 +
-      occurrenceScore * 0.2;
+      bestFrequency.score * 0.55 +
+      amountConsistency * 0.2 +
+      occurrenceScore * 0.15 +
+      patternStrength * 0.1;
+
+    /*
+     * Reject weak patterns.
+     */
+    if (confidence < 0.7) {
+      continue;
+    }
+
+    const averageAmount =
+      average(amounts);
+
+    const averageIntervalDays =
+      average(intervals);
 
     const lastTransaction =
-      sorted[sorted.length - 1];
+      sorted[
+        sorted.length - 1
+      ];
 
-    const nextDate = addDays(
-      new Date(lastTransaction.date),
-      Math.round(averageIntervalDays),
-    );
+    const nextExpectedDate =
+      addDays(
+        new Date(
+          lastTransaction.date,
+        ),
+        Math.round(
+          bestFrequency.expectedDays,
+        ),
+      );
 
-    detected.push({
+    recurringPayments.push({
       merchant,
-      averageAmount:
-        Math.round(averageAmount * 100) / 100,
 
-      frequency,
+      averageAmount:
+        Math.round(
+          averageAmount * 100,
+        ) / 100,
+
+      frequency:
+        bestFrequency.frequency,
 
       averageIntervalDays:
-        Math.round(averageIntervalDays * 10) / 10,
+        Math.round(
+          averageIntervalDays * 10,
+        ) / 10,
 
-      nextExpectedDate: format(
-        nextDate,
-        "yyyy-MM-dd",
-      ),
+      nextExpectedDate:
+        format(
+          nextExpectedDate,
+          "yyyy-MM-dd",
+        ),
 
       confidence:
-        Math.round(confidence * 100) / 100,
+        Math.round(
+          confidence * 100,
+        ) / 100,
 
-      occurrences: sorted.length,
+      occurrences:
+        sorted.length,
     });
   }
 
-  return detected.sort(
-    (a, b) => b.confidence - a.confidence,
+  return recurringPayments.sort(
+    (a, b) =>
+      b.confidence -
+      a.confidence,
   );
 }

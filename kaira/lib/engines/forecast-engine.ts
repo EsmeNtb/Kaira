@@ -41,12 +41,14 @@ export function forecastUpcomingCharges({
 
       return afterStart && beforeEnd;
     })
+
     .map((payment) => ({
       merchant: payment.merchant,
       amount: payment.averageAmount,
       expectedDate: payment.nextExpectedDate,
       confidence: payment.confidence,
     }))
+    
     .sort(
       (a, b) =>
         new Date(a.expectedDate).getTime() -

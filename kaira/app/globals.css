@@ -1,26 +1,161 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: hsl(24 16% 7%);
+  --foreground: hsl(36 34% 96%);
+
+  --card: hsl(24 12% 11%);
+  --card-foreground: hsl(36 34% 96%);
+  --card-2: hsl(25 11% 14%);
+
+  --primary: hsl(20 88% 72%);
+  --primary-foreground: hsl(24 30% 12%);
+
+  --secondary: hsl(25 11% 16%);
+  --secondary-foreground: hsl(36 30% 94%);
+
+  --muted: hsl(25 11% 16%);
+  --muted-foreground: hsl(28 12% 62%);
+
+  --border: hsl(26 10% 18%);
+  --input: hsl(26 10% 20%);
+
+  --mint: hsl(165 56% 60%);
+  --mint-foreground: hsl(24 16% 8%);
+
+  --lavender: hsl(258 60% 74%);
+  --lavender-foreground: hsl(24 16% 10%);
+
+  --peach: hsl(20 88% 72%);
+  --peach-foreground: hsl(24 30% 12%);
+
+  --warning: hsl(38 82% 62%);
+  --warning-foreground: hsl(24 16% 10%);
+
+  --destructive: hsl(4 78% 64%);
+  --destructive-foreground: hsl(36 34% 98%);
+
+  --radius: 1.25rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card2: var(--card-2);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+
+  --color-mint: var(--mint);
+  --color-mint-foreground: var(--mint-foreground);
+
+  --color-lavender: var(--lavender);
+  --color-lavender-foreground:
+    var(--lavender-foreground);
+
+  --color-peach: var(--peach);
+  --color-peach-foreground:
+    var(--peach-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground:
+    var(--warning-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground:
+    var(--destructive-foreground);
+
+  --font-heading:
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+
+  --font-body:
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+
+  --font-display:
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--background);
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  letter-spacing: -0.02em;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glow-mint {
+  box-shadow:
+    0 0 40px -8px
+    color-mix(
+      in srgb,
+      var(--mint) 45%,
+      transparent
+    );
+}
+
+.glow-peach {
+  box-shadow:
+    0 0 40px -8px
+    color-mix(
+      in srgb,
+      var(--peach) 40%,
+      transparent
+    );
+}
+
+.glow-lavender {
+  box-shadow:
+    0 0 40px -8px
+    color-mix(
+      in srgb,
+      var(--lavender) 40%,
+      transparent
+    );
 }

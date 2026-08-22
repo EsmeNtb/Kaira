@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { supabaseServer } from "@/lib/supabase/server";
+
 interface GuardRequest {
   purchaseName: string;
   purchaseAmount: number;
@@ -10,7 +12,8 @@ interface GuardRequest {
 
 export async function POST(request: Request) {
   try {
-    const body: GuardRequest = await request.json();
+    const body: GuardRequest =
+      await request.json();
 
     if (
       typeof body.purchaseAmount !== "number" ||
@@ -27,6 +30,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const accountId =
+      process.env.DEMO_ACCOUNT_ID;
+
+    if (!accountId) {
+      throw new Error(
+        "DEMO_ACCOUNT_ID is missing.",
+      );
+    }
+
     const event = {
       source: "kaira",
       event: "financial_risk_detected",
@@ -34,7 +46,8 @@ export async function POST(request: Request) {
 
       data: {
         purchaseName:
-          body.purchaseName || "Planned purchase",
+          body.purchaseName ||
+          "Planned purchase",
 
         purchaseAmount:
           body.purchaseAmount,
@@ -53,20 +66,63 @@ export async function POST(request: Request) {
     const webhookUrl =
       process.env.N8N_GUARD_WEBHOOK_URL;
 
-    // Demo mode until n8n is connected
+    // -------------------------
+    // DEMO MODE
+    // -------------------------
+
     if (!webhookUrl) {
       console.log(
         "Kaira Guard event:",
         event,
       );
 
+      const recommendation =
+        "Kaira Guard activated in demo mode.";
+
+      const { error: guardEventError } =
+        await supabaseServer
+          .from("guard_events")
+          .insert({
+            account_id: accountId,
+
+            purchase_name:
+              body.purchaseName ||
+              "Planned purchase",
+
+            purchase_amount:
+              body.purchaseAmount,
+
+            risk_level:
+              body.riskLevel,
+
+            safe_to_spend_after:
+              body.safeToSpendAfter,
+
+            upcoming_expenses:
+              body.upcomingExpenses,
+
+            recommendation,
+
+            status: "protected",
+          });
+
+      if (guardEventError) {
+        console.error(
+          "Unable to save demo guard event:",
+          guardEventError.message,
+        );
+      }
+
       return NextResponse.json({
         success: true,
         mode: "demo",
-        message:
-          "Kaira Guard activated in demo mode.",
+        message: recommendation,
       });
     }
+
+    // -------------------------
+    // N8N AUTOMATION
+    // -------------------------
 
     const response = await fetch(
       webhookUrl,
@@ -82,15 +138,76 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok) {
+      const errorText =
+        await response.text();
+
+      console.error(
+        "n8n webhook error:",
+        response.status,
+        errorText,
+      );
+
       throw new Error(
-        "n8n webhook request failed.",
+        `n8n webhook request failed: ${response.status}`,
+      );
+    }
+
+    const workflowResponse =
+      await response.json();
+
+    const recommendation =
+      workflowResponse.recommendation ??
+      workflowResponse.message ??
+      "Kaira Guard protection workflow activated.";
+
+    // -------------------------
+    // SAVE PROTECTION EVENT
+    // -------------------------
+
+    const { error: guardEventError } =
+      await supabaseServer
+        .from("guard_events")
+        .insert({
+          account_id: accountId,
+
+          purchase_name:
+            body.purchaseName ||
+            "Planned purchase",
+
+          purchase_amount:
+            body.purchaseAmount,
+
+          risk_level:
+            body.riskLevel,
+
+          safe_to_spend_after:
+            body.safeToSpendAfter,
+
+          upcoming_expenses:
+            body.upcomingExpenses,
+
+          recommendation,
+
+          status: "protected",
+        });
+
+    if (guardEventError) {
+      console.error(
+        "Unable to save guard event:",
+        guardEventError.message,
       );
     }
 
     return NextResponse.json({
       success: true,
+
       mode: "n8n",
+
+      workflow:
+        workflowResponse,
+
       message:
+        workflowResponse.message ??
         "Kaira Guard protection workflow activated.",
     });
   } catch (error) {
