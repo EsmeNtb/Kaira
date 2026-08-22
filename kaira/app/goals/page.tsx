@@ -2,7 +2,29 @@ import KairaShell from "@/components/kaira/KairaShell";
 
 import SavingGoals from "@/components/kaira/SavingGoals";
 
-export default function GoalsPage() {
+import {
+  getSavingsGoals,
+} from "@/lib/data/savings-goals";
+
+export const dynamic =
+  "force-dynamic";
+
+export default async function GoalsPage() {
+  const accountId =
+    process.env
+      .DEMO_ACCOUNT_ID;
+
+  if (!accountId) {
+    throw new Error(
+      "DEMO_ACCOUNT_ID is missing.",
+    );
+  }
+
+  const goals =
+    await getSavingsGoals(
+      accountId,
+    );
+
   return (
     <KairaShell>
       <div className="space-y-6">
@@ -17,12 +39,18 @@ export default function GoalsPage() {
           </h1>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Turn today&apos;s financial margin into tomorrow&apos;s plans.
+            Protect money for tomorrow,
+            without losing flexibility today.
           </p>
         </header>
 
         <SavingGoals
-          showHeader={false}
+          goals={
+            goals
+          }
+          showHeader={
+            false
+          }
           variant="page"
         />
 

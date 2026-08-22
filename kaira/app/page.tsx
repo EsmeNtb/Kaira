@@ -1,9 +1,31 @@
-import {getAccount,} from "@/lib/data/accounts";
-import {getTransactions,} from "@/lib/data/transactions";
-import {detectRecurringPayments,} from "@/lib/engines/recurring-engine";
-import {forecastUpcomingCharges,} from "@/lib/engines/forecast-engine";
-import { calculateSafeToSpend,} from "@/lib/engines/safe-to-spend-engine";
-import { getRecurringControls,} from "@/lib/data/recurring-controls";
+import {
+  getAccount,
+} from "@/lib/data/accounts";
+
+import {
+  getTransactions,
+} from "@/lib/data/transactions";
+
+import {
+  getRecurringControls,
+} from "@/lib/data/recurring-controls";
+
+import {
+  getSavingsGoals,
+} from "@/lib/data/savings-goals";
+
+import {
+  detectRecurringPayments,
+} from "@/lib/engines/recurring-engine";
+
+import {
+  forecastUpcomingCharges,
+} from "@/lib/engines/forecast-engine";
+
+import {
+  calculateSafeToSpend,
+} from "@/lib/engines/safe-to-spend-engine";
+
 import HeroSection from "@/components/kaira/HeroSection";
 import StatsChip from "@/components/kaira/StatsChip";
 import UpcomingCommitments from "@/components/kaira/UpcomingCommitments";
@@ -17,9 +39,13 @@ import {
   PurchaseSimulator,
 } from "@/components/purchase-simulator";
 
+export const dynamic =
+  "force-dynamic";
+
 export default async function Home() {
   const accountId =
-    process.env.DEMO_ACCOUNT_ID;
+    process.env
+      .DEMO_ACCOUNT_ID;
 
   if (!accountId) {
     throw new Error(
@@ -31,14 +57,21 @@ export default async function Home() {
     account,
     transactions,
     recurringControls,
+    savingsGoals,
   ] = await Promise.all([
-    getAccount(accountId),
+    getAccount(
+      accountId,
+    ),
 
     getTransactions(
       accountId,
     ),
 
     getRecurringControls(
+      accountId,
+    ),
+
+    getSavingsGoals(
       accountId,
     ),
   ]);
@@ -52,15 +85,40 @@ export default async function Home() {
     forecastUpcomingCharges({
       recurringPayments,
 
-      fromDate: "2026-08-22",
+      fromDate:
+        "2026-08-22",
 
       days: 30,
     });
 
+  /*
+   * Savings goals are money
+   * that exists in the account,
+   * but Kaira considers reserved.
+   */
+  const reservedSavings =
+    savingsGoals.reduce(
+      (
+        total,
+        goal,
+      ) =>
+        total +
+        goal.savedAmount,
+      0,
+    );
+
+  /*
+   * This is the amount Kaira
+   * may actually plan around.
+   */
+  const planningBalance =
+    account.balance -
+    reservedSavings;
+
   const financialStatus =
     calculateSafeToSpend({
       currentBalance:
-        account.balance,
+        planningBalance,
 
       upcomingCharges,
 
@@ -73,7 +131,9 @@ export default async function Home() {
       <div className="space-y-7">
 
         <HeroSection
-          name={account.ownerName}
+          name={
+            account.ownerName
+          }
           currentBalance={
             account.balance
           }
@@ -112,7 +172,7 @@ export default async function Home() {
 
         <PurchaseSimulator
           currentBalance={
-            account.balance
+            planningBalance
           }
           upcomingCharges={
             upcomingCharges
@@ -131,7 +191,13 @@ export default async function Home() {
           }
         />
 
-        <SavingGoals variant="home" />
+        <SavingGoals
+          goals={
+            savingsGoals
+          }
+          variant="home"
+        />
+
         <DemoWallets
           wallets={[
             {
@@ -139,7 +205,8 @@ export default async function Home() {
                 account.name ??
                 "Main account",
 
-              type: "Checking",
+              type:
+                "Checking",
 
               balance:
                 account.balance,
