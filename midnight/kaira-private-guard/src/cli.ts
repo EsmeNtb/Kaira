@@ -7,7 +7,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { WebSocket } from 'ws';
-import { Buffer } from 'buffer';
 
 // Midnight SDK imports
 import { findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -47,9 +46,9 @@ if (!fs.existsSync(contractPath)) {
   process.exit(1);
 }
 
-const HelloWorld = await import(pathToFileURL(contractPath).href);
+const KairaPrivateGuard = await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', HelloWorld.Contract).pipe(
+const compiledContract = CompiledContract.make('hello-world', KairaPrivateGuard.Contract).pipe(
   CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
@@ -98,6 +97,34 @@ async function createProviders(walletCtx: WalletContext) {
 }
 
 // ─── Main CLI ──────────────────────────────────────────────────────────────────
+
+const UINT64_MAX = (1n << 64n) - 1n;
+
+async function askAmount(
+  rl: ReturnType<typeof createInterface>,
+  label: string,
+): Promise<bigint> {
+  while (true) {
+    const raw = await rl.question(`  ${label}: `);
+
+    // Accept values such as "8400" or "8,400".
+    const normalized = raw.replace(/,/g, '').trim();
+
+    if (!/^\d+$/.test(normalized)) {
+      console.log('  ❌ Enter a non-negative whole number.\n');
+      continue;
+    }
+
+    const value = BigInt(normalized);
+
+    if (value > UINT64_MAX) {
+      console.log('  ❌ Value exceeds Uint<64>.\n');
+      continue;
+    }
+
+    return value;
+  }
+}
 
 async function main() {
   console.log('\n╔══════════════════════════════════════════════════════════════╗');
@@ -168,10 +195,11 @@ async function main() {
 
     // Interactive CLI loop
     let running = true;
+
     while (running) {
-      console.log('─── Menu ───────────────────────────────────────────────────────');
-      console.log('  1. Store a message');
-      console.log('  2. Read current message');
+      console.log('─── Kaira Private Guard ────────────────────────────────────────');
+      console.log('  1. Verify a purchase privately');
+      console.log('  2. Read latest public verification result');
       console.log('  3. Check wallet balance');
       console.log('  4. Exit\n');
 
@@ -179,49 +207,156 @@ async function main() {
 
       switch (choice.trim()) {
         case '1': {
-          const message = await rl.question('  Enter your message: ');
-          console.log('\n  Submitting transaction (this may take 30-60 seconds)...');
+          console.log('\n  Private financial inputs');
+          console.log('  These values are used to generate the proof.');
+          console.log('  They are not written to the public ledger.\n');
+
+          const currentBalance = await askAmount(
+            rl,
+            'Current balance (MXN)',
+          );
+
+          const upcomingCommitments = await askAmount(
+            rl,
+            'Upcoming commitments (MXN)',
+          );
+
+          const reservedSavings = await askAmount(
+            rl,
+            'Reserved savings (MXN)',
+          );
+
+          const safetyBuffer = await askAmount(
+            rl,
+            'Safety buffer (MXN)',
+          );
+
+          const purchaseAmount = await askAmount(
+            rl,
+            'Proposed purchase (MXN)',
+          );
+
+          console.log('\n  🌙 Generating private verification...');
+          console.log('  This may take 30–60 seconds.');
+          console.log('');
+          console.log('  Private:');
+          console.log('    • balance');
+          console.log('    • commitments');
+          console.log('    • reserved savings');
+          console.log('    • safety buffer');
+          console.log('    • purchase amount');
+          console.log('');
+          console.log('  Disclosed:');
+          console.log('    • verification result\n');
+
           try {
-            const tx = await deployed.callTx.storeMessage(message);
-            console.log(`\n  ✅ Message stored: "${message}"`);
+            const tx = await deployed.callTx.verifyPurchase(
+              currentBalance,
+              upcomingCommitments,
+              reservedSavings,
+              safetyBuffer,
+              purchaseAmount,
+            );
+
+            console.log('  ✅ Zero-knowledge proof accepted by Midnight');
             console.log(`  Transaction ID: ${tx.public.txId}`);
-            console.log(`  Block height: ${tx.public.blockHeight}\n`);
+            console.log(`  Block height: ${tx.public.blockHeight}`);
+
+            const contractState =
+              await providers.publicDataProvider.queryContractState(
+                deployment.address,
+              );
+
+            if (contractState) {
+              const ledgerState =
+                KairaPrivateGuard.ledger(contractState.data);
+
+              const verified = ledgerState.lastVerification;
+
+              console.log('\n  ─── Kaira Private Guard Result ─────────────────────');
+              console.log(
+                verified
+                  ? '  ✅ VERIFIED — Purchase satisfies your financial safety rules.'
+                  : '  🔒 NOT VERIFIED — Purchase does not satisfy your financial safety rules.',
+              );
+
+              console.log('\n  Financial values disclosed on-chain: NONE');
+              console.log(`  Public result: ${verified}\n`);
+            }
           } catch (error) {
-            console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
+            console.error(
+              '\n  ❌ Verification failed:',
+              error instanceof Error ? error.message : error,
+            );
+            console.log('');
           }
+
           break;
         }
 
         case '2': {
-          console.log('\n  Reading message from blockchain...');
+          console.log('\n  Reading public verification state...');
+
           try {
-            const contractState = await providers.publicDataProvider.queryContractState(deployment.address);
-            if (contractState) {
-              const ledgerState = HelloWorld.ledger(contractState.data);
-              const message = Buffer.from(ledgerState.message).toString();
-              console.log(`\n  📋 Current message: "${message}"\n`);
-            } else {
-              console.log('\n  📋 No message found (contract state empty)\n');
+            const contractState =
+              await providers.publicDataProvider.queryContractState(
+                deployment.address,
+              );
+
+            if (!contractState) {
+              console.log('\n  No contract state found.\n');
+              break;
             }
+
+            const ledgerState =
+              KairaPrivateGuard.ledger(contractState.data);
+
+            console.log('\n  ─── Public Midnight State ──────────────────────────');
+            console.log(
+              `  Last verification: ${
+                ledgerState.lastVerification ? 'VERIFIED ✅' : 'NOT VERIFIED 🔒'
+              }`,
+            );
+
+            console.log('');
+            console.log('  Balance:             NOT DISCLOSED');
+            console.log('  Commitments:         NOT DISCLOSED');
+            console.log('  Reserved savings:    NOT DISCLOSED');
+            console.log('  Safety buffer:       NOT DISCLOSED');
+            console.log('  Purchase amount:     NOT DISCLOSED\n');
           } catch (error) {
-            console.error('\n  ❌ Failed:', error instanceof Error ? error.message : error);
+            console.error(
+              '\n  ❌ Failed:',
+              error instanceof Error ? error.message : error,
+            );
           }
+
           break;
         }
 
         case '3': {
           console.log('\n  Checking balance...');
-          const currentState = await walletCtx.wallet.waitForSyncedState();
-          const currentBalance = currentState.unshielded.balances[unshieldedToken().raw] ?? 0n;
-          const dustBalance = currentState.dust.balance(new Date());
+
+          const currentState =
+            await walletCtx.wallet.waitForSyncedState();
+
+          const currentBalance =
+            currentState.unshielded.balances[
+              unshieldedToken().raw
+            ] ?? 0n;
+
+          const dustBalance =
+            currentState.dust.balance(new Date());
+
           console.log(`\n  tNight: ${currentBalance.toLocaleString()}`);
           console.log(`  DUST: ${dustBalance.toLocaleString()}\n`);
+
           break;
         }
 
         case '4':
           running = false;
-          console.log('\n  👋 Goodbye!\n');
+          console.log('\n  🌙 Kaira Private Guard closed.\n');
           break;
 
         default:

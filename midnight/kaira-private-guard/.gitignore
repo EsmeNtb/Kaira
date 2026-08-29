@@ -58,3 +58,12 @@ temp/
 
 # Midnight wallet sync state (per-network serialized wallet state cache)
 .midnight-wallet-state/
+
+# Midnight local runtime state
+.midnight-state.json
+.midnight-wallet-state
+.midnight-wallet-state/
+midnight-level-db/
+
+# Local dependencies
+node_modules/
