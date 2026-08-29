@@ -1,9 +1,14 @@
 /**
- * End-to-end smoke check for kaira-private-guard.
+ * End-to-end transactional check for kaira-private-guard.
  *
- * Reconnects to the deployed contract, reads its ledger state, and exits 0
- * on success. Used by `npm run test:e2e` and by the project's CI workflows.
+ * Reconnects to the deployed contract, reads its ledger state,
+ * executes a real verifyPurchase transaction, waits for the indexed
+ * state transition, and exits 0 on success.
+ *
+ * Used by `npm run test:e2e` and by the project's CI workflows.
  */
+
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -73,23 +78,35 @@ async function main() {
 
   const zkConfigProvider = new NodeZkConfigProvider(zkConfigPath);
   const walletProvider = {
-    // Midnight.js 4.1.x returns the key objects (CoinPublicKey / EncPublicKey).
     getCoinPublicKey: () => walletCtx.shieldedSecretKeys.coinPublicKey,
-    getEncryptionPublicKey: () => walletCtx.shieldedSecretKeys.encryptionPublicKey,
-    async balanceTx() {
-      throw new Error('e2e-check is read-only and should not balance transactions');
+    getEncryptionPublicKey: () =>
+      walletCtx.shieldedSecretKeys.encryptionPublicKey,
+
+    async balanceTx(tx: any, ttl?: Date) {
+      const recipe = await walletCtx.wallet.balanceUnboundTransaction(
+        tx,
+        {
+          shieldedSecretKeys: walletCtx.shieldedSecretKeys,
+          dustSecretKey: walletCtx.dustSecretKey,
+        },
+        {
+          ttl: ttl ?? new Date(Date.now() + 30 * 60 * 1000),
+        },
+      );
+
+      return walletCtx.wallet.finalizeRecipe(recipe);
     },
-    submitTx() {
-      throw new Error('e2e-check is read-only and should not submit transactions');
-    },
-  } as any;
+
+    submitTx: (tx: any) =>
+      walletCtx.wallet.submitTransaction(tx) as any,
+  };
 
   const providers = {
     privateStateProvider: levelPrivateStateProvider({
       privateStateStoreName: 'hello-world-state',
       accountId: walletCtx.unshieldedKeystore.getBech32Address().toString(),
-      // SDK requires ≥16 chars. e2e-check is read-only so we don't expose
-      // the env-var override here — match the deploy script's local-devnet default.
+      // SDK requires ≥16 chars. 
+      // Match the deploy script's local-devnet default.
       privateStoragePasswordProvider: () => 'Local-Devnet-Development-Placeholder-1',
     }),
     publicDataProvider: indexerPublicDataProvider(networkConfig.indexer, networkConfig.indexerWS),
@@ -99,9 +116,10 @@ async function main() {
     midnightProvider: walletProvider,
   };
 
+  let deployed:any;
   // 3. Reconnect to the deployed contract — proves callTx interface is wired
   try {
-    await findDeployedContract(providers, {
+    deployed = await findDeployedContract(providers, {
       contractAddress: deployment.address,
       compiledContract: compiledContract as any,
       privateStateId: PRIVATE_STATE_ID,
@@ -120,8 +138,89 @@ async function main() {
     await walletCtx.wallet.stop();
     fail(`queryContractState returned null for ${deployment.address}`);
   }
+  // 5. Execute a real Midnight transaction.
+  //
+  // We deliberately flip lastVerification relative to its current value.
+  // This ensures that the test proves the transaction was actually indexed,
+  // instead of accidentally passing because the previous state was identical.
 
-  console.log(`✅ e2e-check passed`);
+  const initialLedger = HelloWorld.ledger(onChainState.data);
+  const initialResult = initialLedger.lastVerification;
+
+  const expectedResult = !initialResult;
+
+  console.log('');
+  console.log('─── Transactional ZK check ───────────────────────────────────');
+  console.log(`   Initial state:  ${initialResult}`);
+  console.log(`   Expected state: ${expectedResult}`);
+  console.log('   Generating proof...');
+
+  let tx: any;
+
+  try {
+    if (expectedResult) {
+      // requiredFunds = 5,000 + 10,000 + 5,000 + 1,000 = 21,000
+      // 50,000 >= 21,000 => true
+      tx = await deployed.callTx.verifyPurchase(
+        50_000n,
+        5_000n,
+        10_000n,
+        5_000n,
+        1_000n,
+      );
+    } else {
+      // requiredFunds = 5,000 + 4,000 + 2,000 + 1,000 = 12,000
+      // 10,000 >= 12,000 => false
+      tx = await deployed.callTx.verifyPurchase(
+        10_000n,
+        5_000n,
+        4_000n,
+        2_000n,
+        1_000n,
+      );
+    }
+  } catch (err: any) {
+    await walletCtx.wallet.stop();
+    fail(`verifyPurchase transaction failed: ${err?.message ?? err}`);
+  }
+
+  let verified = false;
+
+  for (let attempt = 1; attempt <= 20; attempt++) {
+    const updatedState =
+      await providers.publicDataProvider.queryContractState(
+        deployment.address,
+      );
+
+    if (updatedState) {
+      const ledger = HelloWorld.ledger(updatedState.data);
+
+      if (ledger.lastVerification === expectedResult) {
+        verified = true;
+        break;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  if (!verified) {
+    await walletCtx.wallet.stop();
+
+    fail(
+      `transaction succeeded but indexed state never became ${expectedResult}`,
+    );
+  }
+
+  console.log(`   Transaction: ${tx.public.txId}`);
+  console.log(`   Block:       ${tx.public.blockHeight}`);
+  console.log('');
+  console.log('✅ e2e-check passed');
+  console.log('   contract connection: ✅');
+  console.log('   public state read:    ✅');
+  console.log('   ZK proof generation:  ✅');
+  console.log('   transaction submit:   ✅');
+  console.log('   state transition:     ✅');
   console.log(`   contractAddress: ${deployment.address}`);
   console.log(`   network:         ${network}`);
 
