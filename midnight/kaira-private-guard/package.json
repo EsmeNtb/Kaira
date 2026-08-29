@@ -44,5 +44,10 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "keywords": ["midnight", "blockchain", "zero-knowledge", "privacy"]
+  "keywords": ["midnight", "blockchain", "zero-knowledge", "privacy"],
+  
+  "overrides": {
+  "@midnight-ntwrk/onchain-runtime-v3": "3.0.0"
+  }
+
 }
