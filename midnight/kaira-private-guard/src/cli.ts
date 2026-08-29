@@ -23,7 +23,7 @@ import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-j
 globalThis.WebSocket = WebSocket;
 
 // Must match the privateStateId used at deploy time so the CLI reconnects to
-// the same private state. The hello-world contract has no witnesses (empty state).
+// the same private state. The kaira-private-guard contract has no witnesses (empty state).
 const PRIVATE_STATE_ID = 'helloWorldPrivateState';
 
 const { network, config: networkConfig } = resolveNetwork();
@@ -35,8 +35,13 @@ const SEED = WALLET.seed;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const zkConfigPath = path.resolve(__dirname, '..', 'contracts', 'managed', 'hello-world');
-
+const zkConfigPath = path.resolve(
+  __dirname,
+  '..',
+  'contracts',
+  'managed',
+  'kaira-private-guard',
+);
 // Load compiled contract
 const contractPath = path.join(zkConfigPath, 'contract', 'index.js');
 
@@ -48,7 +53,7 @@ if (!fs.existsSync(contractPath)) {
 
 const KairaPrivateGuard = await import(pathToFileURL(contractPath).href);
 
-const compiledContract = CompiledContract.make('hello-world', KairaPrivateGuard.Contract).pipe(
+const compiledContract = CompiledContract.make('kaira-private-guard', KairaPrivateGuard.Contract).pipe(
   CompiledContract.withVacantWitnesses,
   CompiledContract.withCompiledFileAssets(zkConfigPath),
 );
@@ -84,7 +89,7 @@ async function createProviders(walletCtx: WalletContext) {
 
   return {
     privateStateProvider: levelPrivateStateProvider({
-      privateStateStoreName: 'hello-world-state',
+      privateStateStoreName: 'kaira-private-guard-state',
       accountId,
       privateStoragePasswordProvider: () => privateStatePassword,
     }),
