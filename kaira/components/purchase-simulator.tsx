@@ -1,18 +1,19 @@
 "use client";
 
 import {
-  useMemo,
   useState,
 } from "react";
 
 import {
   Loader2,
+  ShieldCheck,
+  Target,
   Volume2,
 } from "lucide-react";
 
 import {
-  simulatePurchase,
-} from "@/lib/engines/collision-engine";
+  useRouter,
+} from "next/navigation";
 
 import type {
   UpcomingCharge,
@@ -28,11 +29,30 @@ interface PurchaseSimulatorProps {
   safetyBuffer: number;
 }
 
-export function PurchaseSimulator({
-  currentBalance,
-  upcomingCharges,
-  safetyBuffer,
-}: PurchaseSimulatorProps) {
+interface MidnightProof {
+  verified: boolean;
+  transactionId: string;
+  blockHeight: number;
+}
+
+interface ServerAssessment {
+  riskLevel:
+    | "safe"
+    | "warning"
+    | "danger";
+
+  safeToSpendBefore: number;
+  safeToSpendAfter: number;
+  upcomingExpenses: number;
+  message: string;
+}
+
+export function PurchaseSimulator(
+  _props: PurchaseSimulatorProps,
+) {
+  const router =
+    useRouter();
+
   const [
     purchaseName,
     setPurchaseName,
@@ -48,12 +68,20 @@ export function PurchaseSimulator({
   );
 
   const [
-    guardStatus,
-    setGuardStatus,
+    assessment,
+    setAssessment,
+  ] =
+    useState<ServerAssessment | null>(
+      null,
+    );
+
+  const [
+    simulationStatus,
+    setSimulationStatus,
   ] = useState<
     | "idle"
     | "loading"
-    | "protected"
+    | "done"
     | "error"
   >("idle");
 
@@ -62,6 +90,13 @@ export function PurchaseSimulator({
     setGuardRecommendation,
   ] = useState<
     string | null
+  >(null);
+
+  const [
+    midnightProof,
+    setMidnightProof,
+  ] = useState<
+    MidnightProof | null
   >(null);
 
   const [
@@ -74,40 +109,22 @@ export function PurchaseSimulator({
     | "error"
   >("idle");
 
-  const simulation =
-    useMemo(() => {
-      return simulatePurchase({
-        currentBalance,
-
-        purchaseAmount,
-
-        upcomingCharges,
-
-        safetyBuffer,
-      });
-    }, [
-      currentBalance,
-      purchaseAmount,
-      upcomingCharges,
-      safetyBuffer,
-    ]);
-
   const riskConfig = {
     safe: {
       label:
         "Looks safe",
 
       dot:
-        "bg-mint",
+        "bg-kaira-teal",
 
       text:
-        "text-mint",
+        "text-kaira-teal",
 
       border:
-        "border-mint/25",
+        "border-kaira-teal/25",
 
       background:
-        "bg-mint/10",
+        "bg-kaira-teal/10",
     },
 
     warning: {
@@ -146,16 +163,26 @@ export function PurchaseSimulator({
   };
 
   const risk =
-    riskConfig[
-      simulation.riskLevel
-    ];
+    assessment
+      ? riskConfig[
+          assessment.riskLevel
+        ]
+      : null;
 
-  function resetGuard() {
-    setGuardStatus(
+  function resetSimulation() {
+    setAssessment(
+      null,
+    );
+
+    setSimulationStatus(
       "idle",
     );
 
     setGuardRecommendation(
+      null,
+    );
+
+    setMidnightProof(
       null,
     );
 
@@ -171,12 +198,155 @@ export function PurchaseSimulator({
       amount,
     );
 
-    resetGuard();
+    resetSimulation();
+  }
+
+  async function simulatePrivately() {
+    try {
+      setSimulationStatus(
+        "loading",
+      );
+
+      setAssessment(
+        null,
+      );
+
+      setMidnightProof(
+        null,
+      );
+
+      setGuardRecommendation(
+        null,
+      );
+
+      const response =
+        await fetch(
+          "/api/guard",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                purchaseName,
+                purchaseAmount,
+              }),
+          },
+        );
+
+      const result =
+        await response
+          .json()
+          .catch(
+            () =>
+              null,
+          );
+
+      if (
+        !response.ok ||
+        !result
+      ) {
+        throw new Error(
+          result?.message ??
+            "Unable to simulate purchase.",
+        );
+      }
+
+      if (
+        !result.assessment ||
+        !result.midnight
+      ) {
+        throw new Error(
+          "Private simulation returned an incomplete result.",
+        );
+      }
+
+      setAssessment({
+        riskLevel:
+          result.assessment
+            .riskLevel,
+
+        safeToSpendBefore:
+          result.assessment
+            .safeToSpendBefore,
+
+        safeToSpendAfter:
+          result.assessment
+            .safeToSpendAfter,
+
+        upcomingExpenses:
+          result.assessment
+            .upcomingExpenses,
+
+        message:
+          result.assessment
+            .message,
+      });
+
+      setMidnightProof({
+        verified:
+          result.midnight
+            .verified,
+
+        transactionId:
+          result.midnight
+            .transactionId,
+
+        blockHeight:
+          result.midnight
+            .blockHeight,
+      });
+
+      /*
+       * A Guard recommendation only
+       * makes sense for a High Risk
+       * result.
+       */
+      if (
+        result.assessment
+          .riskLevel ===
+        "danger"
+      ) {
+        const recommendation =
+          result.workflow
+            ?.recommendation ??
+          result.workflow
+            ?.message ??
+          result.message ??
+          "Delay this purchase until your upcoming commitments are covered.";
+
+        setGuardRecommendation(
+          recommendation,
+        );
+      }
+
+      setSimulationStatus(
+        "done",
+      );
+    } catch (error) {
+      console.error(
+        "Private simulation error:",
+        error,
+      );
+
+      setSimulationStatus(
+        "error",
+      );
+    }
   }
 
   async function playKairaWarning(
     message?: string,
   ) {
+    if (!assessment) {
+      return;
+    }
+
     try {
       setVoiceStatus(
         "loading",
@@ -201,27 +371,19 @@ export function PurchaseSimulator({
                 purchaseAmount,
 
                 safeToSpendAfter:
-                  simulation.safeToSpendAfter,
+                  assessment
+                    .safeToSpendAfter,
 
                 upcomingExpenses:
-                  simulation.upcomingExpenses,
+                  assessment
+                    .upcomingExpenses,
 
-                /*
-                 * If message is empty,
-                 * the API generates the
-                 * normal financial warning.
-                 *
-                 * If Guard sends a message,
-                 * Kaira speaks that instead.
-                 */
                 message,
               }),
           },
         );
 
-      if (
-        !response.ok
-      ) {
+      if (!response.ok) {
         const result =
           await response
             .json()
@@ -288,101 +450,33 @@ export function PurchaseSimulator({
     }
   }
 
-  async function activateKairaGuard() {
-    try {
-      setGuardStatus(
-        "loading",
-      );
+  function addPurchaseToGoals() {
+    const params =
+      new URLSearchParams({
+        name:
+          purchaseName ||
+          "Planned purchase",
 
-      setGuardRecommendation(
-        null,
-      );
+        amount:
+          String(
+            purchaseAmount,
+          ),
 
-      const response =
-        await fetch(
-          "/api/guard",
-          {
-            method:
-              "POST",
+        source:
+          "simulator",
+      });
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            body:
-              JSON.stringify({
-                purchaseName,
-
-                purchaseAmount,
-
-                riskLevel:
-                  simulation.riskLevel,
-
-                safeToSpendAfter:
-                  simulation.safeToSpendAfter,
-
-                upcomingExpenses:
-                  simulation.upcomingExpenses,
-              }),
-          },
-        );
-
-      if (
-        !response.ok
-      ) {
-        throw new Error(
-          "Unable to activate Kaira Guard.",
-        );
-      }
-
-      const result =
-        await response.json();
-
-      const recommendation =
-        result.workflow
-          ?.recommendation ??
-        result.message ??
-        "Delay this purchase until your upcoming commitments are covered.";
-
-      setGuardRecommendation(
-        recommendation,
-      );
-
-      setGuardStatus(
-        "protected",
-      );
-
-      /*
-       * For high-risk purchases,
-       * Kaira automatically speaks
-       * the Guard recommendation.
-       */
-      if (
-        simulation.riskLevel ===
-        "danger"
-      ) {
-        await playKairaWarning(
-          `Kaira Guard activated. ${recommendation}`,
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Kaira Guard error:",
-        error,
-      );
-
-      setGuardStatus(
-        "error",
-      );
-    }
+    router.push(
+      `/goals?${params.toString()}`,
+    );
   }
 
   return (
     <section className="space-y-3">
 
+      {/* HEADER */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-peach">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-kaira-orange">
           Future collision
         </p>
 
@@ -391,20 +485,22 @@ export function PurchaseSimulator({
         </h2>
 
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Kaira projects how a purchase today
-          could affect your upcoming commitments.
+          Simulate a purchase
+          privately before committing
+          your money.
         </p>
       </div>
 
+      {/* CARD */}
       <div className="space-y-4 rounded-[1.75rem] border border-border/70 bg-card p-4">
 
         {/* INPUTS */}
         <div className="grid grid-cols-2 gap-3">
 
           <label className="space-y-1.5">
-
             <span className="text-[11px] font-medium text-muted-foreground">
-              What are you thinking of buying?
+              What are you thinking
+              of buying?
             </span>
 
             <input
@@ -419,21 +515,19 @@ export function PurchaseSimulator({
                     .value,
                 );
 
-                resetGuard();
+                resetSimulation();
               }}
               placeholder="e.g. Headphones"
-              className="w-full rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-peach/60"
+              className="w-full rounded-xl border border-border bg-background/60 px-3 py-2.5 text-sm font-medium outline-none transition focus:border-kaira-orange/60"
             />
-
           </label>
 
           <label className="space-y-1.5">
-
             <span className="text-[11px] font-medium text-muted-foreground">
               Price
             </span>
 
-            <div className="flex items-center rounded-xl border border-border bg-background/60 px-3 py-2.5 focus-within:border-peach/60">
+            <div className="flex items-center rounded-xl border border-border bg-background/60 px-3 py-2.5 transition focus-within:border-kaira-orange/60">
 
               <span className="mr-1 text-sm text-muted-foreground">
                 MX$
@@ -459,7 +553,6 @@ export function PurchaseSimulator({
               />
 
             </div>
-
           </label>
 
         </div>
@@ -490,7 +583,7 @@ export function PurchaseSimulator({
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                   purchaseAmount ===
                   amount
-                    ? "border-peach bg-peach text-peach-foreground"
+                    ? "border-kaira-orange bg-kaira-orange text-white"
                     : "border-border bg-background/40 text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -503,19 +596,64 @@ export function PurchaseSimulator({
 
         </div>
 
+        {/* SIMULATE */}
+        <button
+          type="button"
+          onClick={
+            simulatePrivately
+          }
+          disabled={
+            simulationStatus ===
+              "loading" ||
+            purchaseAmount <= 0
+          }
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-kaira-orange px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {simulationStatus ===
+          "loading" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+
+              Simulating privately...
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="h-4 w-4" />
+
+              Simulate privately
+            </>
+          )}
+        </button>
+
+        <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
+          Runs a real zero-knowledge
+          verification with Midnight.
+        </p>
+
+        {/* SIMULATION ERROR */}
+        {simulationStatus ===
+          "error" && (
+          <p className="text-center text-[11px] font-medium text-destructive">
+            Kaira could not complete
+            the private simulation.
+            Try again.
+          </p>
+        )}
+
         {/* ASSESSMENT */}
-        {purchaseAmount >
-          0 && (
+        {assessment &&
+          risk && (
           <div
             className={`space-y-4 rounded-2xl border p-4 ${risk.border} ${risk.background}`}
           >
 
+            {/* STATUS */}
             <div className="flex items-start justify-between gap-4">
 
               <div>
-
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Kaira&apos;s assessment
+                  Kaira&apos;s
+                  assessment
                 </p>
 
                 <div className="mt-2 flex items-center gap-2">
@@ -524,14 +662,15 @@ export function PurchaseSimulator({
                     className={`h-3 w-3 rounded-full ${risk.dot}`}
                   />
 
-                  <p className="text-lg font-bold">
+                  <p
+                    className={`text-lg font-bold ${risk.text}`}
+                  >
                     {
                       risk.label
                     }
                   </p>
 
                 </div>
-
               </div>
 
               <div className="text-right">
@@ -550,25 +689,29 @@ export function PurchaseSimulator({
 
             </div>
 
+            {/* MESSAGE */}
             <p className="text-xs leading-relaxed text-muted-foreground">
               {
-                simulation.message
+                assessment.message
               }
             </p>
 
+            {/* STATS */}
             <div className="grid grid-cols-3 gap-2">
 
               <MiniStat
                 label="Before"
                 value={formatMoney(
-                  simulation.safeToSpendBefore,
+                  assessment
+                    .safeToSpendBefore,
                 )}
               />
 
               <MiniStat
                 label="After"
                 value={formatMoney(
-                  simulation.safeToSpendAfter,
+                  assessment
+                    .safeToSpendAfter,
                 )}
                 className={
                   risk.text
@@ -578,134 +721,189 @@ export function PurchaseSimulator({
               <MiniStat
                 label="Commitments"
                 value={formatMoney(
-                  simulation.upcomingExpenses,
+                  assessment
+                    .upcomingExpenses,
                 )}
               />
 
             </div>
 
-            <div className="flex items-center justify-between gap-3">
+            {/* PURCHASE */}
+            <p className="truncate text-[11px] text-muted-foreground">
+              Simulated:{" "}
+              <span className="font-medium text-foreground">
+                {purchaseName ||
+                  "New purchase"}
+              </span>
+            </p>
 
-              <p className="min-w-0 truncate text-[11px] text-muted-foreground">
+            {/* HIGH RISK ACTIONS */}
+            {assessment
+              .riskLevel ===
+              "danger" && (
+              <div className="flex items-center gap-2">
 
-                Simulating:{" "}
+                <button
+                  type="button"
+                  onClick={() =>
+                    playKairaWarning()
+                  }
+                  disabled={
+                    voiceStatus ===
+                      "loading" ||
+                    voiceStatus ===
+                      "playing"
+                  }
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full border border-kaira-purple/40 bg-kaira-purple/20 px-3 py-2 text-[11px] font-bold text-lavender transition hover:bg-kaira-purple/30 disabled:opacity-50"
+                >
 
-                <span className="font-medium text-foreground">
-                  {purchaseName ||
-                    "New purchase"}
-                </span>
+                  {voiceStatus ===
+                  "loading" ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Generating...
+                    </>
+                  ) : voiceStatus ===
+                    "playing" ? (
+                    <>
+                      <Volume2 className="h-3.5 w-3.5" />
+                      Speaking...
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="h-3.5 w-3.5" />
+                      Hear Kaira
+                    </>
+                  )}
 
-              </p>
+                </button>
 
-              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    addPurchaseToGoals
+                  }
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-kaira-orange px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-110"
+                >
+                  <Target className="h-3.5 w-3.5" />
 
-                {/* HEAR KAIRA */}
-                {simulation.riskLevel ===
-                  "danger" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      playKairaWarning()
-                    }
-                    disabled={
-                      voiceStatus ===
-                        "loading" ||
-                      voiceStatus ===
-                        "playing"
-                    }
-                    className="inline-flex items-center gap-1.5 rounded-full border border-lavender/30 bg-lavender/10 px-3.5 py-2 text-[11px] font-bold text-lavender transition hover:bg-lavender/15 disabled:opacity-50"
-                  >
-
-                    {voiceStatus ===
-                    "loading" ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-
-                        Generating...
-                      </>
-                    ) : voiceStatus ===
-                      "playing" ? (
-                      <>
-                        <Volume2 className="h-3.5 w-3.5" />
-
-                        Speaking...
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="h-3.5 w-3.5" />
-
-                        Hear Kaira
-                      </>
-                    )}
-
-                  </button>
-                )}
-
-                {/* KAIRA GUARD */}
-                {simulation.riskLevel !==
-                  "safe" && (
-                  <button
-                    type="button"
-                    onClick={
-                      activateKairaGuard
-                    }
-                    disabled={
-                      guardStatus ===
-                      "loading"
-                    }
-                    className={`rounded-full px-3.5 py-2 text-[11px] font-bold transition disabled:opacity-50 ${
-                      simulation.riskLevel ===
-                      "danger"
-                        ? "bg-destructive text-destructive-foreground"
-                        : "bg-peach text-peach-foreground"
-                    }`}
-                  >
-
-                    {guardStatus ===
-                      "idle" &&
-                      "Protect my budget"}
-
-                    {guardStatus ===
-                      "loading" &&
-                      "Protecting..."}
-
-                    {guardStatus ===
-                      "protected" &&
-                      "✓ Guard active"}
-
-                    {guardStatus ===
-                      "error" &&
-                      "Try again"}
-
-                  </button>
-                )}
+                  Add to Goals
+                </button>
 
               </div>
+            )}
 
-            </div>
+            {/* WARNING ACTION */}
+            {assessment
+              .riskLevel ===
+              "warning" && (
+              <button
+                type="button"
+                onClick={
+                  addPurchaseToGoals
+                }
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-kaira-orange/30 bg-kaira-orange/10 px-3 py-2 text-[11px] font-bold text-kaira-orange transition hover:bg-kaira-orange/15"
+              >
+                <Target className="h-3.5 w-3.5" />
+
+                Save for later
+              </button>
+            )}
 
             {/* VOICE ERROR */}
             {voiceStatus ===
               "error" && (
-              <p className="text-[11px] text-destructive">
-                Kaira could not generate the voice warning.
-                Try again.
+              <p className="text-[11px] font-medium text-destructive">
+                Kaira could not
+                generate the voice
+                warning.
               </p>
             )}
 
-            {/* GUARD RESULT */}
-            {guardStatus ===
-              "protected" && (
-              <div className="rounded-xl border border-mint/20 bg-mint/10 p-3">
+            {/* GUARD RECOMMENDATION */}
+            {assessment
+              .riskLevel ===
+              "danger" &&
+              guardRecommendation && (
+              <div className="rounded-xl border border-kaira-orange/20 bg-kaira-orange/10 p-3">
 
-                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-mint">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-kaira-orange">
                   Kaira Guard
                 </p>
 
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {guardRecommendation ??
-                    "Protection workflow activated."}
+                  {
+                    guardRecommendation
+                  }
                 </p>
+
+              </div>
+            )}
+
+            {/* MIDNIGHT RECEIPT */}
+            {midnightProof && (
+              <div className="rounded-xl border border-kaira-purple/30 bg-kaira-purple/10 p-3">
+
+                <div className="flex items-start gap-2">
+
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-kaira-teal" />
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-kaira-teal">
+                      Verified privately
+                      with Midnight
+                    </p>
+
+                    <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+                      Zero-knowledge
+                      verification
+                      completed.
+                    </p>
+                  </div>
+
+                </div>
+
+                <p className="mt-3 text-xs font-semibold">
+                  {midnightProof
+                    .verified
+                    ? "Financial safety condition verified."
+                    : "Financial safety condition not satisfied."}
+                </p>
+
+                <div className="mt-3 space-y-1.5 text-[10px] text-muted-foreground">
+
+                  <p>
+                    Block{" "}
+                    <span className="font-semibold text-foreground">
+                      {
+                        midnightProof
+                          .blockHeight
+                      }
+                    </span>
+                  </p>
+
+                  <p>
+                    Tx{" "}
+                    <span className="font-mono text-foreground">
+                      {midnightProof
+                        .transactionId
+                        .slice(
+                          0,
+                          12,
+                        )}
+                      ...
+                    </span>
+                  </p>
+
+                  <p>
+                    Raw financial inputs
+                    disclosed on-chain:{" "}
+                    <span className="font-semibold text-kaira-teal">
+                      none
+                    </span>
+                  </p>
+
+                </div>
 
               </div>
             )}
@@ -714,7 +912,6 @@ export function PurchaseSimulator({
         )}
 
       </div>
-
     </section>
   );
 }

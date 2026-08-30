@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  useEffect,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -47,6 +49,10 @@ interface SavingGoalsProps {
   availableToSave: number;
   showHeader?: boolean;
   variant?: "home" | "page";
+
+  defaultGoalName?: string;
+  defaultTargetAmount?: number;
+  autoOpenCreate?: boolean;
 }
 
 type GoalAction =
@@ -137,9 +143,16 @@ export default function SavingGoals({
   availableToSave,
   showHeader = true,
   variant = "home",
+
+  defaultGoalName = "",
+  defaultTargetAmount = 0,
+  autoOpenCreate = false,
 }: SavingGoalsProps) {
   const router =
     useRouter();
+
+  const autoOpenedRef =
+  useRef(false);
 
   const [
     createOpen,
@@ -205,6 +218,51 @@ export default function SavingGoals({
   ] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    if (
+      !autoOpenCreate ||
+      autoOpenedRef.current
+    ) {
+      return;
+    }
+
+    autoOpenedRef.current =
+      true;
+
+    setName(
+      defaultGoalName,
+    );
+
+    setTargetAmount(
+      defaultTargetAmount > 0
+        ? String(
+            defaultTargetAmount,
+          )
+        : "",
+    );
+
+    setSavedAmount(
+      "0",
+    );
+
+    setSelectedIcon(
+      "target",
+    );
+
+    setErrorMessage(
+      null,
+    );
+
+    setCreateOpen(
+      true,
+    );
+  }, [
+    autoOpenCreate,
+    defaultGoalName,
+    defaultTargetAmount,
+  ]);
+
 
   const totalSaved =
     goals.reduce(
@@ -408,6 +466,14 @@ export default function SavingGoals({
       setCreateOpen(
         false,
       );
+
+      if (autoOpenCreate) {
+        router.replace(
+          "/goals",
+        );
+      } else {
+        router.refresh();
+      }
 
       router.refresh();
     } catch (error) {
