@@ -25,11 +25,8 @@ The project was later evolved for the **Midnight Hackathon, August 28–30, 2026
 
 ### Track alignment
 
-- **Integrate Midnight to Upgrade an Existing App**  
-  Kaira adds private zero-knowledge verification to an existing financial decision engine.
-
-- **AI Track**  
-  Kaira demonstrates an architecture where AI-assisted product flows can act on a verified financial result instead of requiring access to the raw private financial values behind that result.
+- **Integrate Midnight Track Resources**  
+  Kaira adds private zero-knowledge verification to an existing financial decision engine using Midnight resources.
 
 The goal was not to rebuild Kaira from scratch. The goal was to make the existing product more trustworthy by introducing explicit privacy boundaries and verifiable financial policies.
 
@@ -338,9 +335,9 @@ This creates a simple product rule:
 
 ---
 
-# AI Track Alignment
+# AI-Assisted Privacy Direction
 
-Kaira's AI-track concept is based on reducing the amount of private financial information an AI-assisted workflow needs to receive.
+Kaira's AI-assisted privacy concept is based on reducing the amount of private financial information an AI-assisted workflow needs to receive.
 
 Instead of sending raw financial records to a model, the application can use a verified result:
 
@@ -835,14 +832,14 @@ AI assistance included:
 
 All product decisions, implementation choices, integration work, testing, and final project submission are reviewed and directed by the project author/team.
 
-See [`AI-USAGE.md`](./AI-USAGE.md) for the detailed disclosure.
+See [`AI_USAGE.md`](./AI_USAGE.md) for the detailed disclosure.
 
 ---
 
 # Documentation
 
-- [`AI-USAGE.md`](./AI-USAGE.md) — AI tooling and responsible usage.
-- [`Security.md`](./Security.md) — security model, assumptions, and limitations.
+- [`AI_USAGE.md`](./AI_USAGE.md) — AI tooling and responsible usage.
+- [`SECURITY.md`](./SECURITY.md) — security model, assumptions, and limitations.
 - [`COPYRIGHT.md`](./COPYRIGHT.md) — copyright, attribution, and original assets.
 - [`LICENSE`](./LICENSE) — software license.
 
