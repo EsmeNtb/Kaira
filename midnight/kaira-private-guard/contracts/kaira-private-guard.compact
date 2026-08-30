@@ -2,16 +2,29 @@ pragma language_version >= 0.23;
 
 import CompactStandardLibrary;
 
-// Public result of the most recent Kaira Private Guard verification.
+// --------------------------------------------------
+// KAIRA PRIVATE GUARD
+// --------------------------------------------------
+
+// Public result of the most recent purchase verification.
 //
-// Sensitive financial inputs are NOT stored on the public ledger.
+// Sensitive financial inputs are NOT stored
+// on the public ledger.
 export ledger lastVerification: Boolean;
 
+// Public result of the most recent
+// Private Financial Identity verification.
+//
+// The underlying identity / financial data
+// remains private.
+export ledger lastIdentityVerification: Boolean;
+
+
 /**
- * Kaira Private Guard
+ * Purchase Guard
  *
- * Proves whether a proposed purchase satisfies the user's
- * private financial safety requirements.
+ * Proves whether a proposed purchase satisfies
+ * the user's private financial safety requirements.
  *
  * Private inputs:
  * - currentBalance
@@ -20,7 +33,7 @@ export ledger lastVerification: Boolean;
  * - safetyBuffer
  * - purchaseAmount
  *
- * Only the final Boolean eligibility result is disclosed.
+ * Only the final Boolean result is disclosed.
  */
 export circuit verifyPurchase(
     currentBalance: Uint<64>,
@@ -35,7 +48,146 @@ export circuit verifyPurchase(
         + safetyBuffer
         + purchaseAmount;
 
-    const eligible = currentBalance >= requiredFunds;
+    const eligible =
+        currentBalance >= requiredFunds;
 
-    lastVerification = disclose(eligible);
+    lastVerification =
+        disclose(eligible);
+}
+
+
+/**
+ * Private Financial Identity
+ *
+ * CASE 1:
+ * Adult with their own income.
+ *
+ * Proves that:
+ * - user is an adult
+ * - income meets the required threshold
+ * - income source has been verified
+ * - tax/compliance status is valid
+ *
+ * Does NOT reveal:
+ * - exact age
+ * - exact income
+ * - employer / income source
+ * - tax documents
+ */
+export circuit verifyOwnIncomeIdentity(
+    age: Uint<8>,
+    monthlyIncome: Uint<64>,
+    minimumRequiredIncome: Uint<64>,
+    incomeSourceVerified: Boolean,
+    taxCompliant: Boolean
+): [] {
+    const isAdult =
+        age >= 18;
+
+    const incomeRequirementMet =
+        monthlyIncome >= minimumRequiredIncome;
+
+    const eligible =
+        isAdult
+        && incomeRequirementMet
+        && incomeSourceVerified
+        && taxCompliant;
+
+    lastIdentityVerification =
+        disclose(eligible);
+}
+
+
+/**
+ * Private Financial Identity
+ *
+ * CASE 2:
+ * Adult who depends financially
+ * on another person.
+ *
+ * Proves that:
+ * - user is an adult
+ * - financial supporter is verified
+ * - relationship/support credential is verified
+ * - supporter satisfies the income requirement
+ * - supporter compliance status is valid
+ *
+ * Does NOT reveal:
+ * - exact age
+ * - supporter's identity
+ * - exact supporter income
+ * - relationship documents
+ * - tax documents
+ */
+export circuit verifyDependentIdentity(
+    age: Uint<8>,
+    supporterMonthlyIncome: Uint<64>,
+    minimumRequiredIncome: Uint<64>,
+    supporterVerified: Boolean,
+    relationshipVerified: Boolean,
+    supporterTaxCompliant: Boolean
+): [] {
+    const isAdult =
+        age >= 18;
+
+    const supportRequirementMet =
+        supporterMonthlyIncome >=
+        minimumRequiredIncome;
+
+    const eligible =
+        isAdult
+        && supportRequirementMet
+        && supporterVerified
+        && relationshipVerified
+        && supporterTaxCompliant;
+
+    lastIdentityVerification =
+        disclose(eligible);
+}
+
+
+/**
+ * Private Financial Identity
+ *
+ * CASE 3:
+ * Minor with a verified financial guardian.
+ *
+ * Proves that:
+ * - user is under legal age
+ * - guardian is verified
+ * - guardian relationship is verified
+ * - guardian satisfies the financial requirement
+ * - guardian compliance status is valid
+ *
+ * Does NOT reveal:
+ * - exact age
+ * - guardian identity
+ * - exact guardian income
+ * - relationship documents
+ * - tax documents
+ */
+export circuit verifyMinorIdentity(
+    age: Uint<8>,
+    guardianMonthlyIncome: Uint<64>,
+    minimumRequiredIncome: Uint<64>,
+    guardianVerified: Boolean,
+    relationshipVerified: Boolean,
+    guardianTaxCompliant: Boolean
+): [] {
+    const isMinor =
+        age < 18;
+
+    const supportRequirementMet =
+        guardianMonthlyIncome >=
+        minimumRequiredIncome;
+
+    const eligible =
+        isMinor
+        && supportRequirementMet
+        && guardianVerified
+        && relationshipVerified
+        && guardianTaxCompliant;
+
+    lastIdentityVerification =
+        disclose(eligible);
 }
