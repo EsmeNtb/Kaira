@@ -1,35 +1,37 @@
-< p align= "center">
-      <ima src="kaira\public\Banner.png" alt= Banner width="100%>
+<p align="center">
+  <img src="./kaira/public/Banner.png" alt="Kaira — privacy-first finance prototype" width="100%" />
 </p>
 
 # Kaira
 
 **Know your money. Protect your future.**
 
-Kaira is a personal finance management prototype designed to help users understand how much of their current balance is actually safe to spend.
+Kaira is a privacy-first personal finance prototype designed to help users understand how much of their current balance is actually safe to spend before future commitments are affected.
 
-Traditional banking interfaces often show what is available *right now*, but that number does not necessarily reflect what is already committed to subscriptions, recurring payments, savings goals, safety buffers, or near-term obligations.
+Traditional banking interfaces usually show what is available **right now**. That number does not necessarily represent what is truly disposable once recurring payments, upcoming expenses, savings goals, and safety buffers are considered.
 
-Kaira takes a forward-looking approach to personal finance by combining recurring-payment detection, expense forecasting, protected savings, and purchase simulation into a single decision layer.
+Kaira adds a forward-looking financial decision layer and now uses **Midnight zero-knowledge technology** to verify financial conditions without disclosing the raw financial inputs on-chain.
 
 > **Kaira asks a different question:**  
 > *How much can I spend without compromising what comes next?*
 
 ---
 
-## Project Story
+## Hackathon Evolution
 
-Kaira was born at **Ignition Hack V7**.
+Kaira was originally created at **Ignition Hack V7**.
 
-The project started from a simple frustration: many financial applications feel visually repetitive, reactive, and focused on showing what already happened rather than helping users understand what their money means *before* they make a decision.
+The project was later evolved for the **Midnight Hackathon, August 28–30, 2026**, with a focus on upgrading an existing application with meaningful privacy and security guarantees.
 
-Kaira began as an attempt to rethink that experience from a different angle: not just another transaction dashboard, but a financial companion centered on **safe-to-spend awareness, future commitments, and proactive decision-making**.
+### Track alignment
 
-The project was later revisited for the **Midnight Hackathon, August 28–29, 2026**, under the track:
+- **Integrate Midnight to Upgrade an Existing App**  
+  Kaira adds private zero-knowledge verification to an existing financial decision engine.
 
-> **Integrate Midnight to Upgrade an Existing App**
+- **AI Track**  
+  Kaira demonstrates an architecture where AI-assisted product flows can act on a verified financial result instead of requiring access to the raw private financial values behind that result.
 
-For this evolution, the focus is not on rebuilding Kaira from scratch. The goal is to upgrade an existing financial prototype with a meaningful privacy and security layer using Midnight.
+The goal was not to rebuild Kaira from scratch. The goal was to make the existing product more trustworthy by introducing explicit privacy boundaries and verifiable financial policies.
 
 ---
 
@@ -37,7 +39,7 @@ For this evolution, the focus is not on rebuilding Kaira from scratch. The goal 
 
 A bank balance does not represent true spending capacity.
 
-Users may have money in their account while part of that balance is effectively committed to:
+Part of that balance may already be effectively committed to:
 
 - recurring payments;
 - subscriptions;
@@ -45,7 +47,13 @@ Users may have money in their account while part of that balance is effectively 
 - savings goals;
 - financial safety margins.
 
-This creates a gap between **current balance** and **actually disposable money**.
+This creates a gap between:
+
+```text
+Current balance
+      ≠
+Actually safe-to-spend money
+```
 
 Kaira is designed around closing that gap.
 
@@ -53,17 +61,17 @@ Kaira is designed around closing that gap.
 
 ## Solution
 
-Kaira processes financial activity and upcoming commitments to provide a more useful representation of available money.
+Kaira combines financial activity, recurring-payment detection, upcoming commitments, savings protection, and purchase simulation into a forward-looking decision layer.
 
 ```text
 Current Balance
       |
-      +-- Upcoming recurring expenses
-      +-- Reserved savings
-      +-- Safety buffer
+      +-- Upcoming Commitments
+      +-- Reserved Savings
+      +-- Safety Buffer
       |
       v
-Safe-to-Spend Amount
+Safe-to-Spend
       |
       v
 Purchase Simulation
@@ -77,52 +85,80 @@ Instead of asking only:
 
 > How much money do I have?
 
-Kaira is designed to answer:
+Kaira asks:
 
-> How much can I spend without affecting my upcoming commitments?
+> How much can I spend without affecting what comes next?
 
 ---
 
-## Core Features
+# Core Features
 
-### Safe-to-Spend Calculation
+## Safe-to-Spend Calculation
 
-Kaira calculates a more realistic spending limit using the user's current financial position together with upcoming commitments, protected savings, and a configurable safety buffer.
+Kaira calculates a more realistic spending limit using:
 
-### Recurring Payment Detection
+- current balance;
+- upcoming commitments;
+- protected savings;
+- configured safety buffer.
+
+At a high level:
+
+```text
+Safe-to-Spend
+=
+Current Balance
+- Upcoming Commitments
+- Reserved Savings
+- Safety Buffer
+```
+
+---
+
+## Recurring Payment Detection
 
 Transaction data is analyzed to identify recurring charges and expected future payments.
 
-Detected recurring expenses are used to forecast upcoming commitments rather than treating past transactions as isolated events.
+Detected recurring expenses are used to forecast upcoming commitments rather than treating previous transactions as isolated events.
 
-### Subscription Controls
+---
+
+## Upcoming Expense Forecasting
+
+Kaira projects detected recurring payments into the near future so the application can reason about money that exists today but is likely needed soon.
+
+---
+
+## Subscription Controls
 
 Recurring payments can be reviewed and managed individually to improve visibility over automatic charges and reduce surprise renewals.
 
-### Upcoming Expense Forecasting
+---
 
-Kaira projects detected recurring payments into the near future so the application can reason about money that is present today but likely needed soon.
+## Savings Goals
 
-### Savings Goals
-
-Users can reserve part of their balance for specific goals.
+Users can reserve money for goals.
 
 Reserved funds are excluded from available spending capacity and can be:
 
 - created;
 - funded;
 - moved between goals;
-- released back into available spending.
+- released.
 
-### Purchase Simulator
+A high-risk purchase can also be redirected into a savings goal from Kaira Guard.
 
-The purchase simulator evaluates the impact of a hypothetical purchase before the user makes it.
+---
+
+## Purchase Simulator
+
+The purchase simulator evaluates the impact of a hypothetical purchase before it is made.
 
 It compares:
 
-- safe-to-spend before the purchase;
+- Safe-to-Spend before the purchase;
 - proposed purchase amount;
-- projected safe-to-spend after the purchase;
+- projected Safe-to-Spend after the purchase;
 - upcoming commitments;
 - configured safety buffer.
 
@@ -134,300 +170,564 @@ Warning
 High Risk
 ```
 
-### Kaira Guard
+---
 
-When a simulated purchase introduces financial risk, Kaira Guard can trigger an additional protection workflow and return a recommendation intended to help the user reconsider or delay spending that may interfere with upcoming obligations.
+## Kaira Guard
 
-### Voice Warnings
+Kaira Guard is the protection layer around the purchase simulator.
 
-For high-risk scenarios, Kaira can generate an audible warning using **ElevenLabs**, extending financial alerts beyond the dashboard.
+The browser submits only the proposed purchase information. The authoritative financial assessment is calculated on the server using Kaira's account, transaction, recurring-payment, forecasting, and savings data.
 
-### Automation Workflows
+For high-risk purchases, Kaira can:
 
-Kaira uses **n8n** to automate supporting processes and workflow orchestration around the prototype.
+- generate a recommendation;
+- trigger the configured n8n workflow;
+- persist a protected Guard event;
+- attach Midnight transaction metadata;
+- offer a path to convert the purchase into a savings goal.
+
+Safe and warning simulations do not create high-risk Guard events.
 
 ---
 
-## Midnight Security Upgrade
+## Voice Warnings
 
-Kaira is being extended for the **Integrate Midnight to Upgrade an Existing App** track.
+For high-risk scenarios, Kaira can generate an audible warning using **ElevenLabs**, extending financial alerts beyond the visual dashboard.
 
-The goal of this upgrade is to demonstrate how a financial application can verify a financial safety condition **without disclosing the sensitive financial values used to evaluate it**.
+---
 
-### Before Midnight
+## Automation Workflows
 
-The original Kaira prototype calculates a user's Safe-to-Spend amount from:
+Kaira uses **n8n** for supporting automation and recommendation workflows in the prototype.
+
+---
+
+# Midnight Privacy Upgrade
+
+The Midnight integration adds two privacy-preserving verification flows:
+
+1. **Kaira Private Guard**
+2. **Private Financial Identity**
+
+Both use Compact circuits with private inputs and disclose only the verification result required by the application.
+
+---
+
+## 1. Kaira Private Guard
+
+Purchase safety is verified using private financial values.
+
+The Compact circuit receives:
+
+```text
+currentBalance
+upcomingCommitments
+reservedSavings
+safetyBuffer
+purchaseAmount
+```
+
+It evaluates:
+
+```text
+currentBalance
+>=
+upcomingCommitments
++ reservedSavings
++ safetyBuffer
++ purchaseAmount
+```
+
+The raw values are private circuit inputs.
+
+The contract discloses only the resulting boolean eligibility state.
+
+### What this means
+
+Kaira can prove that a proposed purchase satisfies the configured financial safety policy without publishing the exact:
+
+- account balance;
+- upcoming commitments;
+- reserved savings;
+- safety buffer;
+- purchase amount
+
+to the Midnight public state.
+
+> The Kaira application server still processes the values required to perform the verification. The privacy guarantee described here is specifically about what is disclosed by the Midnight contract/on-chain verification flow.
+
+---
+
+## 2. Private Financial Identity
+
+Kaira also demonstrates financial eligibility verification for three profile types:
+
+```text
+Own income
+Financially dependent adult
+Minor with guardian
+```
+
+The user can verify a financial profile without persisting the exact income or age in the financial identity profile.
+
+### Own-income profile
+
+The circuit checks private predicates such as:
+
+```text
+age >= 18
+monthlyIncome >= minimumRequiredIncome
+incomeSourceVerified
+taxCompliant
+```
+
+### Financially dependent adult
+
+The circuit checks:
+
+```text
+age >= 18
+supporterMonthlyIncome >= minimumRequiredIncome
+supporterVerified
+relationshipVerified
+supporterTaxCompliant
+```
+
+### Minor with guardian
+
+The circuit checks:
+
+```text
+age < 18
+guardianMonthlyIncome >= minimumRequiredIncome
+guardianVerified
+relationshipVerified
+guardianTaxCompliant
+```
+
+Only the resulting verification state is disclosed by the contract.
+
+---
+
+## Identity Proof Persistence
+
+After verification, Kaira persists proof metadata such as:
+
+```text
+profile_type
+midnight_verified
+midnight_transaction_id
+midnight_block_height
+verified_at
+```
+
+The financial identity profile intentionally does **not** persist:
+
+```text
+exact income
+exact age
+guardian income
+supporter income
+financial documents
+tax/compliance details
+```
+
+This creates a simple product rule:
+
+> **Kaira stores the proof result, not the financial secret.**
+
+---
+
+# AI Track Alignment
+
+Kaira's AI-track concept is based on reducing the amount of private financial information an AI-assisted workflow needs to receive.
+
+Instead of sending raw financial records to a model, the application can use a verified result:
+
+```text
+Private financial data
+        |
+        v
+Midnight policy verification
+        |
+        v
+verified = true / false
+        |
+        v
+AI-assisted Kaira workflow
+```
+
+The goal is to let downstream AI-assisted experiences act on a trusted financial signal while minimizing unnecessary exposure of the private source values.
+
+### Current prototype boundary
+
+The hackathon prototype uses **server-controlled demo attestations** for credential flags such as income-source verification, guardian verification, relationship verification, and compliance status.
+
+These demo attestations are not equivalent to production credentials issued by a bank, tax authority, employer, or government institution.
+
+A production implementation would replace the demo source with cryptographically verifiable credentials or trusted signed attestations.
+
+---
+
+# Privacy Model
+
+## Private in Midnight verification
+
+### Purchase Guard
 
 - current balance;
 - upcoming commitments;
 - reserved savings;
-- safety buffer.
-
-The purchase simulator then evaluates how a hypothetical purchase would affect that financial position.
-
-The pre-Midnight version is preserved at:
-
-```text
-v0.1-before-midnight
-```
-
-### After Midnight
-
-The Midnight integration introduces **Kaira Private Guard**.
-
-Instead of exposing the financial inputs used to evaluate a purchase, Kaira can generate a privacy-preserving proof that the purchase satisfies the configured financial safety condition.
-
-Conceptually:
-
-```text
-Safe-to-Spend >= Proposed Purchase
-```
-
-The proof is designed to reveal the result of the condition without revealing the user's exact:
-
-- balance;
-- savings;
-- commitments;
 - safety buffer;
-- Safe-to-Spend value.
+- proposed purchase amount.
+
+### Private Financial Identity
+
+Depending on profile type:
+
+- age;
+- own income;
+- supporter income;
+- guardian income;
+- configured minimum-income threshold;
+- credential predicates supplied to the circuit.
+
+## Disclosed by the Compact contract
+
+The circuits disclose only the required boolean verification result.
+
+Kaira additionally surfaces transaction metadata such as:
+
+- Midnight transaction ID;
+- block height;
+- profile type where applicable.
 
 ---
 
-## Privacy Model
+# Data Persistence Boundaries
 
-### Private Data
+Kaira intentionally separates application data from Midnight disclosure.
 
-The prototype treats the following information as confidential:
+## Guard events
 
-- current account balance;
-- upcoming financial commitments;
-- protected / reserved savings;
-- safety buffer;
-- calculated Safe-to-Spend amount.
+A **high-risk** Guard event may persist application-level context including:
 
-### Public / Disclosed Data
+- purchase name;
+- purchase amount;
+- risk level;
+- projected Safe-to-Spend after the purchase;
+- upcoming expenses;
+- Midnight verification result;
+- Midnight transaction ID;
+- Midnight block height.
 
-The prototype may disclose:
+This information is stored by Kaira/Supabase for the Guard workflow. It is not the same as on-chain disclosure by the Compact circuit.
 
-- the purchase amount being evaluated;
-- a commitment to the relevant financial snapshot;
-- proof metadata;
-- whether the financial condition was satisfied.
+## Financial identity profiles
 
-The objective is **selective disclosure**: prove what is needed for a decision while keeping the underlying financial state private.
-
----
-
-## Security Model
-
-The Midnight upgrade is designed around:
-
-- zero-knowledge verification;
-- private financial inputs;
-- financial snapshot commitments;
-- proof expiration;
-- replay protection;
-- explicit disclosure boundaries.
-
-No wallet seed phrase, private key, banking credential, or real user financial secret should ever be stored in this repository.
+The identity table stores proof metadata only and intentionally excludes raw identity financial values.
 
 ---
 
-## Prototype Security Limitations
+# Security Model
+
+The implemented prototype includes:
+
+- server-authoritative purchase-risk calculation;
+- private Compact circuit inputs;
+- explicit `disclose(...)` boundaries;
+- server-controlled demo credential flags;
+- proof transaction metadata;
+- high-risk-only Guard event persistence;
+- financial identity proof metadata without raw income/age persistence;
+- local Midnight bridge isolation from the browser;
+- no wallet seed phrase or private key committed to the repository.
+
+---
+
+# Prototype Security Limitations
 
 Kaira is a hackathon prototype and has **not** undergone a production security audit.
 
-The current implementation uses simulated financial data and does not connect to real banking accounts or execute real banking transactions.
+Important limitations:
 
-A valid zero-knowledge proof demonstrates that the specified computation was satisfied for the committed private inputs. In this prototype, it does **not** independently prove that those inputs originated from a real financial institution.
+- the prototype does not connect to real banking accounts;
+- the prototype does not execute real banking transactions;
+- private financial claims entered during the identity demo are not independently certified by a financial institution;
+- server-controlled demo attestations are not cryptographically signed issuer credentials;
+- the Midnight proof verifies the configured computation over the supplied private inputs, not the real-world origin of those inputs;
+- production authentication, authorization, key management, credential issuance, compliance controls, and security review are outside the current prototype scope.
 
-A production system would require additional trusted data sources, authentication, key management, security review, compliance controls, and real-world financial integrations.
+A production implementation would require trusted data sources and signed credentials from appropriate issuers.
 
 ---
 
-## Not a Financial Institution
+# Not a Financial Institution
 
 Kaira is an experimental software prototype.
 
 It is not a bank, financial institution, investment advisor, payment processor, or financial service provider.
 
-The application does not currently hold, transmit, custody, or move real user funds.
+The application does not currently hold, custody, transmit, or move real user funds.
 
 ---
 
-## Financial Logic
-
-Kaira is built around a simple principle:
+# System Architecture
 
 ```text
-Available balance != Safe-to-Spend balance
-```
-
-At a high level:
-
-```text
-Safe-to-Spend
-=
-Current Balance
-- Upcoming Commitments
-- Protected / Reserved Funds
-- Safety Buffer
-```
-
-The purchase simulator then evaluates:
-
-```text
-Projected Safe-to-Spend
-=
-Safe-to-Spend
-- Proposed Purchase
-```
-
-That projected value is used to determine the risk associated with the purchase.
-
----
-
-## System Architecture
-
-```text
-                    +----------------------+
-                    |   Account / Finance  |
-                    |        Data          |
-                    +----------+-----------+
-                               |
-              +----------------+----------------+
-              |                                 |
-              v                                 v
-   +--------------------+          +-----------------------+
-   | Recurring Payment  |          |    Savings Goals      |
-   |     Detection      |          | Reserved Funds Logic  |
-   +---------+----------+          +-----------+-----------+
+                            KAIRA
+                              |
+             +----------------+----------------+
              |                                 |
-             v                                 |
-   +--------------------+                      |
-   | Expense Forecasting|                      |
-   +---------+----------+                      |
+             v                                 v
+      Purchase Guard                Private Financial Identity
+             |                                 |
+             | authoritative                    | private claims
+             | finance state                    | + server attestations
+             v                                 v
+        Next.js API                        Next.js API
              |                                 |
              +----------------+----------------+
                               |
                               v
-                   +-----------------------+
-                   | Financial Calculation |
-                   |   / Safe-to-Spend     |
-                   +-----------+-----------+
-                               |
-                               v
-                   +-----------------------+
-                   |  Purchase Simulator   |
-                   | Safe / Warning / Risk |
-                   +-----------+-----------+
-                               |
-                               v
-                   +-----------------------+
-                   |      Kaira Guard      |
-                   +-----------+-----------+
-                               |
-                    Midnight Security Layer
-                               |
-                               v
-                   +-----------------------+
-                   |   Kaira Private Guard |
-                   |   Private ZK Proofs   |
-                   +-----------------------+
+                       Midnight Bridge
+                      127.0.0.1:8787
+                              |
+                              v
+                       Compact Contract
+                         Private Inputs
+                              |
+                              v
+                    Zero-Knowledge Proof
+                              |
+                              v
+                 boolean result + tx + block
+                              |
+                  +-----------+-----------+
+                  |                       |
+                  v                       v
+               Kaira UI               Supabase
+                                  proof / event metadata
 ```
 
 ---
 
-## Technology
+# Purchase Guard Flow
 
-Kaira is built as a full-stack web application.
+```text
+Browser
+  |
+  | purchase name + amount
+  v
+POST /api/guard
+  |
+  | load authoritative account data
+  | detect recurring payments
+  | forecast commitments
+  | calculate reserved savings
+  | evaluate risk
+  v
+Kaira financial engine
+  |
+  v
+Midnight Private Guard
+  |
+  v
+Compact verifyPurchase
+  |
+  +-- verified = true  -> Safe/Warning response
+  |
+  +-- verified = false -> High-risk Guard workflow
+                            |
+                            +-- n8n recommendation
+                            +-- Guard event
+                            +-- Add to Goals
+```
 
-### Frontend
+---
 
-- Next.js
+# Private Financial Identity Flow
+
+```text
+/profile
+   |
+   v
+/identity
+   |
+   | private claims
+   v
+POST /api/private-identity
+   |
+   | server-controlled demo attestations
+   v
+Midnight Bridge
+   |
+   v
+Compact identity circuit
+   |
+   v
+verified = true / false
+   |
+   +-- tx ID
+   +-- block height
+   |
+   v
+Supabase
+proof metadata only
+```
+
+---
+
+# Technology
+
+## Frontend
+
+- Next.js 16
 - React
 - TypeScript
 - Tailwind CSS
 - Lucide React
 
-### Backend & Data
+## Backend & Data
 
 - Next.js API routes
 - Supabase
-- Custom financial data models
-- Custom recurring-payment detection logic
-- Custom financial forecasting logic
-- Custom purchase-risk engine
+- custom financial data models
+- recurring-payment detection
+- financial forecasting
+- Safe-to-Spend engine
+- purchase-risk / collision engine
 
-### Automation
+## Privacy & Security
+
+- Midnight Network
+- Compact
+- Midnight.js
+- Midnight Wallet SDK
+- zero-knowledge proof server
+- local Midnight bridge
+
+## Automation
 
 - n8n
 
-### Voice & AI-Assisted Workflows
+## Voice & AI-Assisted Workflows
 
 - ElevenLabs
-- AI-assisted recommendation workflows
-
-### Privacy & Security Upgrade
-
-- Midnight
-- Compact / zero-knowledge proof logic
-- Privacy-preserving financial verification
+- AI-assisted development and recommendation workflows
 
 ---
 
-## Project Structure
-
-The application follows a modular structure similar to:
+# Project Structure
 
 ```text
-app/
-├── api/
-│   ├── goals/
-│   ├── guard/
-│   └── voice-warning/
+Kaira/
+├── kaira/
+│   ├── app/
+│   │   ├── activity/
+│   │   ├── api/
+│   │   │   ├── guard/
+│   │   │   ├── private-identity/
+│   │   │   ├── goals/
+│   │   │   └── voice-warning/
+│   │   ├── guard/
+│   │   ├── identity/
+│   │   ├── profile/
+│   │   └── goals/
+│   │
+│   ├── components/
+│   │   ├── kaira/
+│   │   └── purchase-simulator.tsx
+│   │
+│   ├── lib/
+│   │   ├── data/
+│   │   ├── engines/
+│   │   ├── midnight/
+│   │   │   ├── private-guard.ts
+│   │   │   └── private-identity.ts
+│   │   ├── supabase/
+│   │   ├── types/
+│   │   └── utils/
+│   │
+│   └── public/
+│       ├── Banner.png
+│       └── kaira-koi.png
 │
-├── ...
-
-components/
-├── financial dashboard components
-├── purchase simulator
-├── savings goals
-└── recurring payment controls
-
-lib/
-├── data/
-│   ├── accounts
-│   ├── transactions
-│   ├── recurring-controls
-│   └── savings-goals
-│
-├── engines/
-│   ├── recurring-engine
-│   ├── forecasting logic
-│   └── collision-engine
-│
-├── midnight/
-│   └── privacy / proof integration
-│
-├── types/
-└── utils/
+└── midnight/
+    └── kaira-private-guard/
+        ├── contracts/
+        │   └── kaira-private-guard.compact
+        ├── scripts/
+        │   └── e2e-check.ts
+        └── src/
+            ├── deploy.ts
+            └── server.ts
 ```
 
 ---
 
-## Running the Project
+# Running the Project
 
-### Requirements
+## Requirements
 
-- Node.js
+- Node.js 22+
 - npm
+- Docker / Docker Compose
+- Compact compiler
+- Supabase project/configuration for the Kaira application
 
-### Installation
+The Midnight project is currently configured for a local development network by default.
+
+---
+
+## 1. Start Midnight services
 
 ```bash
-git clone <repository-url>
-cd <repository-name>
+cd midnight/kaira-private-guard
+npm install
+docker compose up -d
+```
+
+Compile the Compact contract:
+
+```bash
+npm run compile
+```
+
+For a fresh local deployment:
+
+```bash
+npm run deploy
+```
+
+Start the Midnight bridge:
+
+```bash
+npm run server
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8787/health
+```
+
+The bridge exposes:
+
+```text
+POST /verify
+POST /verify-identity
+GET  /health
+```
+
+---
+
+## 2. Start Kaira
+
+In another terminal:
+
+```bash
+cd kaira
 npm install
 npm run dev
 ```
@@ -438,132 +738,124 @@ Open:
 http://localhost:3000
 ```
 
----
-
-## Prototype Scope
-
-Kaira is currently a hackathon prototype.
-
-The project demonstrates the core product concept, financial decision engine, recurring-payment analysis, savings logic, purchase simulation, warning workflows, and an evolving Midnight-based privacy layer.
-
-It does not currently execute real banking transactions or move real funds.
-
----
-
-## Key Design Decision
-
-Kaira intentionally separates **balance visibility** from **spending availability**.
-
-Most finance dashboards are retrospective. They show transactions, categories, and balances after financial decisions have already been made.
-
-Kaira introduces a forward-looking layer:
+Useful demo routes:
 
 ```text
-Past
-Transactions and recurring-pattern detection
-
-Present
-Current balance and reserved savings
-
-Future
-Upcoming charges and financial commitments
-
-Decision
-Impact of a potential purchase
-
-Privacy
-Verify the decision without exposing the full financial state
+/guard
+/profile
+/identity
+/goals
 ```
 
 ---
 
-## AI-Assisted Development
+# Validation
+
+## Kaira TypeScript
+
+```bash
+cd kaira
+npx next typegen
+npx tsc --noEmit
+```
+
+## Midnight transactional E2E
+
+```bash
+cd midnight/kaira-private-guard
+npm run test:e2e
+```
+
+The E2E check validates:
+
+```text
+contract connection
+public state read
+ZK proof generation
+transaction submission
+state transition
+```
+
+---
+
+# Verified Prototype Behaviors
+
+The current prototype has been manually validated for:
+
+```text
+Purchase Guard
+safe purchase       -> Midnight verified true
+high-risk purchase  -> Midnight verified false + Guard event
+
+Private Financial Identity
+own income / valid        -> verified true
+own income / insufficient -> verified false
+dependent adult           -> verified true
+minor + guardian          -> verified true
+```
+
+The exact transaction IDs and block heights vary by local devnet run.
+
+---
+
+# Project Provenance
+
+Kaira maintains its evolution through Git.
+
+Important milestones include:
+
+```text
+v0.1-before-midnight
+Kaira before the Midnight integration
+
+v0.2-midnight
+Kaira with Midnight privacy/security upgrades
+```
+
+### Hackathon history
+
+- **Ignition Hack V7** — original Kaira prototype.
+- **Midnight Hackathon, August 28–30, 2026** — privacy/security evolution.
+
+---
+
+# AI-Assisted Development
 
 Artificial intelligence tools were used as development assistants during the hackathon.
 
-AI assistance may include:
+AI assistance included:
 
 - architecture exploration;
-- code generation and review;
-- debugging;
+- code drafting and review;
+- debugging support;
 - documentation drafting;
 - security analysis;
+- development planning;
 - visual ideation.
 
-All product decisions, implementation choices, testing, integration work, and final project submission are reviewed and directed by the project author/team.
+All product decisions, implementation choices, integration work, testing, and final project submission are reviewed and directed by the project author/team.
 
-### Tools Used
-
-- **ChatGPT / OpenAI** — architecture exploration, documentation support, debugging assistance, security reasoning, code review, and development planning.
-
-This disclosure is included for transparency in accordance with the hackathon's AI tooling rules.
-
-## Project Provenance
-
-Kaira maintains its development history through Git.
-
-Important milestones:
-
-- `v0.1-before-midnight` — Kaira before the Midnight integration.
-- `v0.2-midnight` — Kaira with the Midnight privacy/security upgrade.
-
-The Git history documents the evolution of the implementation and the work introduced during each hackathon stage.
-
-### Hackathon History
-
-- **Ignition Hack V7** — original Kaira prototype.
-- **Midnight Hackathon — August 28–30, 2026** — privacy/security evolution under the **Integrate Midnight to Upgrade an Existing App** track.
+See [`AI-USAGE.md`](./AI-USAGE.md) for the detailed disclosure.
 
 ---
 
-## Future Development
+# Documentation
 
-A future production version of Kaira could include:
-
-- real banking integrations;
-- automatic transaction synchronization;
-- more advanced recurring-payment classification;
-- configurable subscription authorization;
-- subscription cancellation workflows;
-- personalized safety buffers;
-- longer-term cash-flow forecasting;
-- notifications before recurring charges;
-- adaptive spending recommendations;
-- automated savings allocation;
-- stronger authentication and encrypted financial storage;
-- additional privacy-preserving financial proofs;
-- trusted financial attestations;
-- production security audits.
+- [`AI-USAGE.md`](./AI-USAGE.md) — AI tooling and responsible usage.
+- [`Security.md`](./Security.md) — security model, assumptions, and limitations.
+- [`COPYRIGHT.md`](./COPYRIGHT.md) — copyright, attribution, and original assets.
+- [`LICENSE`](./LICENSE) — software license.
 
 ---
 
-## Intellectual Property & Usage
-
-Copyright © 2026 **Kenia Esmeralda Ramos Javier**.  
-All rights reserved.
-
-Kaira and the original source code, documentation, application content, and original visual assets contained in this repository are the intellectual property of their respective author(s), except where third-party components are explicitly identified.
-
-This repository may be made publicly viewable for hackathon evaluation, technical demonstration, and portfolio purposes.
-
-No open-source license is granted for the original Kaira source code unless explicitly stated otherwise.
-
-No permission is granted to reproduce, redistribute, sublicense, commercialize, or create derivative works from the original Kaira source code except where permitted by applicable law, GitHub's Terms of Service, or a separate written agreement from the copyright holder.
-
-Third-party libraries, frameworks, SDKs, assets, and dependencies remain subject to their respective licenses.
-
-Public availability of this repository should not be interpreted as permission to use the Kaira name, branding, original assets, or source code beyond the permissions provided by applicable law and platform terms.
-
----
-
-## Responsible Security Disclosure
+# Responsible Security Disclosure
 
 If you discover a security issue in Kaira, please do not publish sensitive exploit details in a public GitHub issue.
 
 Contact:
 
 ```text
-[esmeentb@gmail.com]
+esmeentb@gmail.com
 ```
 
 Please include:
@@ -577,8 +869,125 @@ This prototype should never be tested against real financial accounts, real fund
 
 ---
 
-## Status
+# Future Development
 
-**Hackathon prototype — active development.**
+Kaira started as a hackathon prototype, but the long-term vision goes beyond a demo.
 
-Core financial logic, recurring-payment analysis, savings management, purchase simulation, Kaira Guard, voice warnings, automation workflows, Supabase-backed data flows, and the Midnight privacy/security upgrade are part of the current or evolving prototype.
+The goal is to evolve Kaira into an accessible personal finance application that can be useful to a broad range of people, regardless of their financial background or technical knowledge.
+
+A future version of Kaira would aim to be:
+
+- useful for everyday financial decision-making;
+- accessible and easy to understand;
+- available at little or no cost to users whenever possible;
+- privacy-first by design;
+- secure enough to handle sensitive financial workflows responsibly;
+- compatible with regulated banking and financial ecosystems.
+
+Long-term development could include partnerships or integrations with banks, regulated financial institutions, and appropriate government or compliance systems where legally required.
+
+The purpose of those integrations would not be to give Kaira unnecessary access to user information, but to allow financial claims, credentials, and transactions to be verified through legitimate and regulated sources.
+
+### Future work may include:
+
+- real banking integrations;
+- automatic transaction synchronization;
+- stronger authentication and authorization;
+- encrypted financial storage;
+- institution-issued financial credentials;
+- additional Midnight zero-knowledge proofs;
+- production-grade key management;
+- more advanced fraud and financial-risk protection;
+- improved recurring-payment detection;
+- subscription management and cancellation workflows;
+- longer-term cash-flow forecasting;
+- adaptive Safe-to-Spend recommendations;
+- smarter savings automation;
+- accessibility improvements;
+- localization for different users and regions;
+- completion of the remaining planned Kaira features;
+- independent security reviews and production audits.
+
+The long-term ambition is for Kaira to become more than a dashboard: a financial companion that helps people make safer decisions while revealing as little sensitive information as possible.
+---
+
+# License & Copyright
+
+See [`COPYRIGHT.md`](./COPYRIGHT.md) for copyright, attribution, project branding, and original visual assets.
+
+Third-party frameworks, SDKs, libraries, and services remain subject to their respective licenses and terms.
+
+---
+
+# Status
+
+**Midnight Hackathon prototype — August 28–30, 2026.**
+
+Current implemented scope includes:
+
+- Safe-to-Spend financial logic;
+- recurring-payment detection;
+- upcoming commitment forecasting;
+- savings management;
+- purchase simulation;
+- Kaira Guard;
+- high-risk workflow automation;
+- voice warnings;
+- Supabase-backed application data;
+- Midnight private purchase verification;
+- Private Financial Identity;
+- server-controlled demo attestations;
+- proof metadata persistence;
+- transactional Midnight E2E verification.
+
+**Privacy by design. Verify without revealing.**
+
+---
+# Coming Soon (Hopefully...)
+
+Kaira is still evolving
+
+There are still features I would love to finish, ideas I want to explore, and a lot of room to make Kaira safer, more useful, and more accessible.
+
+Maybe this stays a hackathon prototype.
+
+Maybe it becomes something bigger.
+
+Maybe one day it even launches publicly.
+
+Who knows? :3
+
+**Stay tuned for future features, experiments, and whatever Kaira becomes next.**
+
+
+```bash
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡾⠋⠉⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⠃⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⣠⠖⠲⢤⡖⠒⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⡏⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⡏⠀⠀⠀⠀⠀⢀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢀⣀⠀⠀⢸⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠸⣄⠀⠁⣠⠞⠉⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣠⣤⣤⣤⣤⠀⠀
+⠀⡞⠉⠻⠁⢹⠀⠀⡏⠀⠀⠀⠀⢸⠃⠀⠀⠀⠀⠀⠀⠀⠀⠹⣶⠋⠀⠀⠀⠀⣀⡤⠴⠒⠊⠉⠉⠀⠀⣿⣿⣿⠿⠋⠀⠀
+⠀⠳⢤⡀⠀⡞⠁⠀⡇⠀⠀⢀⡠⠼⠴⠒⠒⠒⠒⠦⠤⠤⣄⣀⠀⢀⣠⠴⠚⠉⠀⠀⠀⠀⠀⠀⠀⠀⣼⠿⠋⠁⠀⠀⠀⠀
+⠀⠀⠀⠈⠷⡏⠀⠀⣇⠔⠂⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⠿⠋⠀⠀⠀⠀⠀⠀⠀⠀⣀⡤⠖⠋⠁⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣠⠤⠒⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢀⡟⠀⣠⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⢻⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣤⣤⡤⠤⢴
+⠀⠀⠀⠀⠀⠀⣸⠁⣾⣿⣀⣽⡆⠀⠀⠀⠀⠀⠀⠀⢠⣾⠉⢿⣦⠀⠀⠀⢸⡀⠀⠀⢀⣠⠤⠔⠒⠋⠉⠉⠀⠀⠀⠀⢀⡞
+⠀⠀⠀⠀⠀⢀⡏⠀⠹⠿⠿⠟⠁⠀⠰⠦⠀⠀⠀⠀⠸⣿⣿⣿⡿⠀⠀⠀⢘⡧⠖⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡼⠀
+⠀⠀⠀⠀⠀⣼⠦⣄⠀⠀⢠⣀⣀⣴⠟⠶⣄⡀⠀⠀⡀⠀⠉⠁⠀⠀⠀⠀⢸⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⠁⠀
+⠀⠀⠀⠀⢰⡇⠀⠈⡇⠀⠀⠸⡾⠁⠀⠀⠀⠉⠉⡏⠀⠀⠀⣠⠖⠉⠓⢤⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠃⠀⠀
+⠀⠀⠀⠀⠀⢧⣀⡼⠃⠀⠀⠀⢧⠀⠀⠀⠀⠀⢸⠃⠀⠀⠀⣧⠀⠀⠀⣸⢹⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡰⠃⠀⠀⠀
+⠀⠀⠀⠀⠀⠈⢧⡀⠀⠀⠀⠀⠘⣆⠀⠀⠀⢠⠏⠀⠀⠀⠀⠈⠳⠤⠖⠃⡟⠀⠀⠀⢾⠛⠛⠛⠛⠛⠛⠛⠛⠁⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠙⣆⠀⠀⠀⠀⠈⠦⣀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⠙⢦⠀⠀⠘⡇⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⢠⡇⠙⠦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⠴⠋⠸⡇⠈⢳⡀⠀⢹⡀⠀⠀⠀⢀⡞⠁⠉⣇⣀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⡼⣀⠀⠀⠈⠙⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⣷⠴⠚⠁⠀⣀⣷⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⣳
+⠀⠀⠀⠀⠀⠀⡴⠁⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣆⡴⠚⠉⠉⠀⠀⠀⠀⢸⠃⣀⣠⠤⠤⠖⠋
+⣼⢷⡆⠀⣠⡴⠧⣄⣇⠀⠀⠀⠀⡴⠚⠙⠲⠞⠛⠙⡆⠀⠀⠀⠀⠀⢀⡇⣠⣽⢦⣄⢀⣴⣶⠀⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀
+⡿⣼⣽⡞⠁⠀⠀⠀⢹⡀⠀⠀⠀⢹⠀⠀⠀⠀⠀⠀⣸⠀⠀⠀⠀⠀⣼⠉⠁⠀⠀⢠⢟⣿⣿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⣷⠉⠁⢳⠀⠀⠀⠀⠈⣧⠀⠀⠀⠀⠙⢦⠀⠀⠀⡠⠁⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⠏⠀⠀⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠹⡆⠀⠈⡇⠀⠀⠀⠀⠘⣆⠀⠀⠀⠀⠀⠹⣧⠞⠁⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⠀⠀⠀⣸⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⢳⡀⠀⠙⠀⠀⠀⠀⠀⠘⣆⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⢀⡄⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⢳⡀⣰⣀⣀⣀⠀⠀⠀⠘⣦⣀⠀⠀⠀⡇⠀⠀⠀⢀⡴⠃⠀⠀⠀⠀⠀⢸⡇⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠉⠉⠀⠀⠈⠉⠉⠉⠙⠻⠿⠾⠾⠻⠓⢦⠦⡶⡶⠿⠛⠛⠓⠒⠒⠚⠛⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+```
