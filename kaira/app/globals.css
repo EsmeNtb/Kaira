@@ -36,6 +36,13 @@
   --destructive-foreground: hsl(36 34% 98%);
 
   --radius: 1.25rem;
+
+  /* Kaira brand palette */
+  --kaira-orange: #e2723a;
+  --kaira-purple: #2a1e5c;
+  --kaira-onyx: #0a0f0d;
+  --kaira-silver: #c4cbca;
+  --kaira-teal: #3cbbb1;
 }
 
 @theme inline {
@@ -76,6 +83,12 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground:
     var(--destructive-foreground);
+
+  --color-kaira-orange: var(--kaira-orange);
+  --color-kaira-purple: var(--kaira-purple);
+  --color-kaira-onyx: var(--kaira-onyx);
+  --color-kaira-silver: var(--kaira-silver);
+  --color-kaira-teal: var(--kaira-teal);
 
   --font-heading:
     ui-sans-serif,

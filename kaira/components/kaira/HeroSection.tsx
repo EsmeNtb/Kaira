@@ -47,7 +47,7 @@ export default function HeroSection({
         </div>
 
         {demoMode && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-peach/20 bg-peach/10 px-2.5 py-1 text-[11px] font-semibold text-peach">
+          <span className="inline-flex items-center gap-1 rounded-full border border-kaira-orange/20 bg-kaira-orange/10 px-2.5 py-1 text-[11px] font-semibold text-kaira-orange">
             <Sparkles className="h-3 w-3" />
             Demo
           </span>
@@ -55,13 +55,12 @@ export default function HeroSection({
       </div>
 
       {/* HERO */}
-      <div className="glow-mint relative overflow-hidden rounded-[1.75rem] border border-border/80 bg-gradient-to-br from-card to-card2 p-5">
-
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-kaira-orange/15 bg-gradient-to-br from-card via-card to-kaira-purple/10 p-5 shadow-[0_0_45px_-20px_rgba(60,187,177,0.35)]">
         <div className="relative z-20 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-mint">
-              Safe to spend
-            </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-kaira-teal">
+            Safe to spend
+          </p>
 
             <p className="mt-1 text-[2.6rem] font-extrabold leading-none tracking-tight">
               {formatMoney(safeToSpend)}
@@ -193,7 +192,7 @@ function Row({
             : "font-medium"
         } ${
           accent
-            ? "text-mint"
+            ? "text-kaira-teal"
             : "text-foreground"
         }`}
       >
