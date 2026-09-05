@@ -1,3 +1,12 @@
+import Link from "next/link";
+
+import {
+  Activity,
+  Calculator,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
+
 import {
   getAccount,
 } from "@/lib/data/accounts";
@@ -92,9 +101,9 @@ export default async function Home() {
     });
 
   /*
-   * Savings goals are money
-   * that exists in the account,
-   * but Kaira considers reserved.
+   * Savings goals are money that
+   * exists in the account but Kaira
+   * considers reserved.
    */
   const reservedSavings =
     savingsGoals.reduce(
@@ -130,6 +139,7 @@ export default async function Home() {
     <KairaShell>
       <div className="space-y-7">
 
+        {/* HERO */}
         <HeroSection
           name={
             account.ownerName
@@ -148,6 +158,7 @@ export default async function Home() {
           }
         />
 
+        {/* STATS */}
         <StatsChip
           transactionsAnalyzed={
             transactions.length
@@ -157,6 +168,100 @@ export default async function Home() {
           }
         />
 
+        {/* QUICK ACTIONS */}
+        <section className="space-y-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-kaira-orange">
+              Quick actions
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold">
+              What do you want to do?
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+
+            {/* SIMULATE */}
+            <Link
+              href="#purchase-simulator"
+              className="group rounded-2xl border border-kaira-orange/20 bg-kaira-orange/10 p-4 transition hover:border-kaira-orange/40 hover:bg-kaira-orange/15"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kaira-orange/15 text-kaira-orange">
+                <Calculator className="h-5 w-5" />
+              </div>
+
+              <p className="mt-3 text-sm font-bold">
+                Simulate purchase
+              </p>
+
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Check a purchase before
+                committing your money.
+              </p>
+            </Link>
+
+            {/* ADD GOAL */}
+            <Link
+              href="/goals"
+              className="group rounded-2xl border border-kaira-teal/20 bg-kaira-teal/10 p-4 transition hover:border-kaira-teal/40 hover:bg-kaira-teal/15"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kaira-teal/15 text-kaira-teal">
+                <Target className="h-5 w-5" />
+              </div>
+
+              <p className="mt-3 text-sm font-bold">
+                Add a goal
+              </p>
+
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Turn something you want
+                into a savings plan.
+              </p>
+            </Link>
+
+            {/* GUARD */}
+            <Link
+              href="/guard"
+              className="group rounded-2xl border border-kaira-purple/30 bg-kaira-purple/15 p-4 transition hover:border-kaira-purple/50 hover:bg-kaira-purple/20"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kaira-purple/25 text-lavender">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+
+              <p className="mt-3 text-sm font-bold">
+                Kaira Guard
+              </p>
+
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Review private financial
+                protection activity.
+              </p>
+            </Link>
+
+            {/* ACTIVITY */}
+            <Link
+              href="/activity"
+              className="group rounded-2xl border border-border/70 bg-card p-4 transition hover:border-kaira-silver/25"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background/70 text-kaira-silver">
+                <Activity className="h-5 w-5" />
+              </div>
+
+              <p className="mt-3 text-sm font-bold">
+                Activity
+              </p>
+
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                See transactions and
+                detected money patterns.
+              </p>
+            </Link>
+
+          </div>
+        </section>
+
+        {/* UPCOMING */}
         <UpcomingCommitments
           upcomingCharges={
             upcomingCharges
@@ -166,31 +271,31 @@ export default async function Home() {
           }
         />
 
-        <SectionTitle>
-          Kaira&apos;s overview
-        </SectionTitle>
+        {/* PURCHASE SIMULATOR */}
+        <div
+          id="purchase-simulator"
+          className="scroll-mt-8"
+        >
+          <SectionTitle>
+            Plan before you spend
+          </SectionTitle>
 
-        <PurchaseSimulator
-          currentBalance={
-            planningBalance
-          }
-          upcomingCharges={
-            upcomingCharges
-          }
-          safetyBuffer={
-            account.safetyBuffer
-          }
-        />
+          <div className="mt-3">
+            <PurchaseSimulator
+              currentBalance={
+                planningBalance
+              }
+              upcomingCharges={
+                upcomingCharges
+              }
+              safetyBuffer={
+                account.safetyBuffer
+              }
+            />
+          </div>
+        </div>
 
-        <RecurringControls
-          recurringPayments={
-            recurringPayments
-          }
-          initialControls={
-            recurringControls
-          }
-        />
-
+        {/* SAVING GOALS */}
         <SavingGoals
           goals={
             savingsGoals
@@ -207,6 +312,17 @@ export default async function Home() {
           variant="home"
         />
 
+        {/* RECURRING CONTROLS */}
+        <RecurringControls
+          recurringPayments={
+            recurringPayments
+          }
+          initialControls={
+            recurringControls
+          }
+        />
+
+        {/* WALLETS */}
         <DemoWallets
           wallets={[
             {
@@ -221,7 +337,7 @@ export default async function Home() {
                 account.balance,
 
               tint:
-                "#3b82f6",
+                "#E2723A",
             },
           ]}
         />

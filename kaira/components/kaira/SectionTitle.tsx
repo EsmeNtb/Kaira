@@ -1,4 +1,10 @@
-export default function SectionTitle({ children }) {
+import type { ReactNode} from "react";
+
+interface SelectionTitleProps {
+  children: ReactNode;
+}
+
+export default function SectionTitle({ children,}: SelectionTitleProps ) {
   return (
     <div className="flex items-center gap-3 pt-1">
       <span className="h-px flex-1 bg-border/60" />

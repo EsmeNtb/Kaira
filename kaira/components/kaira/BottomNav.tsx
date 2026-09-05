@@ -7,9 +7,12 @@ import {
   Home,
   Shield,
   Target,
+  UserRound,
 } from "lucide-react";
 
-import { usePathname } from "next/navigation";
+import {
+  usePathname,
+} from "next/navigation";
 
 const tabs = [
   {
@@ -35,6 +38,12 @@ const tabs = [
     label: "Goals",
     icon: Target,
   },
+
+  {
+    href: "/profile",
+    label: "Profile",
+    icon: UserRound,
+  },
 ];
 
 export default function BottomNav() {
@@ -54,15 +63,22 @@ export default function BottomNav() {
             const active =
               href === "/"
                 ? pathname === "/"
-                : pathname.startsWith(
-                    href,
-                  );
+                : href === "/profile"
+                  ? pathname.startsWith(
+                      "/profile",
+                    ) ||
+                    pathname.startsWith(
+                      "/identity",
+                    )
+                  : pathname.startsWith(
+                      href,
+                    );
 
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center justify-center gap-0.5 rounded-full px-4 py-2 transition-all duration-300 ${
+                className={`flex flex-col items-center justify-center gap-0.5 rounded-full px-3 py-2 transition-all duration-300 ${
                   active
                     ? "bg-peach/15 text-peach"
                     : "text-muted-foreground hover:text-foreground"
@@ -80,6 +96,7 @@ export default function BottomNav() {
             );
           },
         )}
+
       </nav>
     </div>
   );
